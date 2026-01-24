@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Redirecting to Cockpit PKN DPS...</title>
+    <meta charset="utf-8">
+    
+    <meta http-equiv="refresh" content="0; url=https://script.google.com/macros/s/AKfycbw5tlmDqIf0IoB4VhShzwl7Q0bdZPgSY0CzrSLck59O1J1Ly-pg-MFD053su3kQxxMp/exec">
+    
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f6f9;
+            color: #555;
+            text-align: center;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div>
+        <div class="loader"></div>
+        <h2>Membuka Cockpit PKN DPS...</h2>
+        <p>Jika tidak dialihkan otomatis, <a href="https://script.google.com/macros/s/AKfycbw5tlmDqIf0IoB4VhShzwl7Q0bdZPgSY0CzrSLck59O1J1Ly-pg-MFD053su3kQxxMp/exec">klik di sini</a>.</p>
+    </div>
+
+    <script>
+        // REPLACE THE URL BELOW WITH YOUR GOOGLE SCRIPT URL
+        var targetUrl = "https://script.google.com/macros/s/AKfycbw5tlmDqIf0IoB4VhShzwl7Q0bdZPgSY0CzrSLck59O1J1Ly-pg-MFD053su3kQxxMp/exec";
+        
+        // Preserve any parameters (like ?page=form) if user typed them
+        var currentParams = window.location.search;
+        if(currentParams) {
+             // If your script uses ?page=..., we pass it along
+             if(targetUrl.includes("?")) {
+                 targetUrl += "&" + currentParams.substring(1);
+             } else {
+                 targetUrl += currentParams;
+             }
+        }
+        
+        window.location.href = targetUrl;
+    </script>
+</body>
+</html>
