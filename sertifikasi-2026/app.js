@@ -27,6 +27,8 @@
     lastUpdated: document.getElementById("lastUpdated"),
     errorBox: document.getElementById("errorBox"),
     totalTarget: document.getElementById("totalTarget"),
+    totalQ2Consolidation: document.getElementById("totalQ2Consolidation"),
+    totalConsolidationPct: document.getElementById("totalConsolidationPct"),
     kpiK1Total: document.getElementById("kpiK1Total"),
     kpiK2Total: document.getElementById("kpiK2Total"),
     kpiK3Total: document.getElementById("kpiK3Total"),
@@ -361,7 +363,9 @@
     const overview = getOverviewCapaianData();
     const summaries = getCapaianSummaries();
     const total = overview ? overview.totalBidang : summaries.reduce((sum, item) => sum + item.total, 0);
-    els.totalTarget.textContent = formatNumber(total);
+    els.totalTarget.textContent = overview ? formatNumber(overview.konsolidasiBidang) : formatNumber(total);
+    els.totalQ2Consolidation.textContent = overview ? formatDisplayValue(overview.konsolidasiQ1) : "-";
+    els.totalConsolidationPct.textContent = overview ? formatDisplayValue(overview.konsolidasiPct) : "-";
     if (els.compositionTotal) {
       els.compositionTotal.textContent = `${formatNumber(total)} bidang`;
     }
@@ -404,6 +408,9 @@
       const k4BidangHeader = getNextHeader(data.headers, k4NupHeader);
       const totalHeader = findOverviewHeader(data.headers, ["jumlah komponen a capaian"]);
       const totalPctHeader = getNextHeader(data.headers, totalHeader);
+      const konsolidasiHeader = data.headers[14] || findOverviewHeader(data.headers, ["konsolidasi"]);
+      const konsolidasiQ2Header = data.headers[15] || getNextHeader(data.headers, konsolidasiHeader);
+      const konsolidasiPctHeader = data.headers[16] || getOffsetHeader(data.headers, konsolidasiHeader, 2);
 
       return {
         row: capaianRow,
@@ -418,6 +425,9 @@
         totalBidang: numberFromValue(capaianRow[totalHeader]),
         totalQ1: "",
         totalPct: capaianRow[totalPctHeader] || "",
+        konsolidasiBidang: numberFromValue(capaianRow[konsolidasiHeader]),
+        konsolidasiQ1: capaianRow[konsolidasiQ2Header] || "",
+        konsolidasiPct: capaianRow[konsolidasiPctHeader] || "",
       };
     }
 
@@ -982,6 +992,10 @@
 
   function formatNumber(value) {
     return new Intl.NumberFormat("id-ID").format(Number(value) || 0);
+  }
+
+  function formatDisplayValue(value) {
+    return cleanHeader(value) || "-";
   }
 
   function escapeHtml(value) {
