@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Dashboard Sertifikasi BMN KPKNL Denpasar</title>
+    <link rel="stylesheet" href="styles.css?v=20260624-4" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">KPKNL Denpasar</p>
+          <h1>Dashboard Sertifikasi BMN Berupa Tanah</h1>
+          <p class="subtitle">Capaian kinerja sampai dengan 24 Juni 2026</p>
+        </div>
+        <div class="sync-panel" aria-live="polite">
+          <span class="sync-dot" id="syncDot"></span>
+          <div>
+            <span class="sync-label">Status data</span>
+            <strong id="lastUpdated">Memuat Google Sheet...</strong>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="summary-grid" aria-label="Ringkasan target">
+          <article class="kpi-card kpi-overview">
+            <span class="kpi-label">Total Capaian</span>
+            <strong id="totalTarget">-</strong>
+            <span class="kpi-note">Komponen capaian sertifikasi</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">Capaian K1</span>
+            <strong id="kpiK1Total">-</strong>
+            <div class="progress-track"><span id="kpiK1Bar"></span></div>
+            <span class="kpi-note" id="kpiK1Note">Menunggu data</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">Capaian K2</span>
+            <strong id="kpiK2Total">-</strong>
+            <div class="progress-track"><span id="kpiK2Bar"></span></div>
+            <span class="kpi-note" id="kpiK2Note">Menunggu data</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">Capaian K3</span>
+            <strong id="kpiK3Total">-</strong>
+            <div class="progress-track"><span id="kpiK3Bar"></span></div>
+            <span class="kpi-note" id="kpiK3Note">Menunggu data</span>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <nav class="tabs" aria-label="Menu dashboard">
+            <button class="tab-button active" type="button" data-tab="overview">Capaian</button>
+            <button class="tab-button" type="button" data-tab="k1">Detail K1</button>
+            <button class="tab-button" type="button" data-tab="k2">Detail K2</button>
+            <button class="tab-button" type="button" data-tab="k3">Detail K3</button>
+          </nav>
+
+          <section class="tab-panel active" id="panel-overview" aria-labelledby="Capaian">
+            <div class="panel-heading">
+              <div>
+                <p class="section-kicker">Capaian</p>
+                <h2>Tabel Capaian Utama</h2>
+              </div>
+              <button class="ghost-button" type="button" id="refreshButton">Muat ulang</button>
+            </div>
+            <div id="errorBox" class="error-box" hidden></div>
+            <div class="overview-sheet-layout">
+              <div class="overview-panel">
+                <div class="chart-title">
+                  <span>Sheet Capaian</span>
+                  <strong id="overviewCount">- baris</strong>
+                </div>
+                <div class="component-legend" aria-label="Keterangan komponen capaian">
+                  <span><strong>Komponen A</strong> Capaian sertifikasi K1, K2, K3, K4, dan jumlah capaian.</span>
+                  <span><strong>Komponen B</strong> Penyelesaian permasalahan hukum.</span>
+                  <span><strong>Komponen C</strong> Penyelesaian administrasi pengelolaan BMN berupa tanah.</span>
+                </div>
+                <div class="table-caption">
+                  <span>Data lengkap</span>
+                  <span>Geser kiri/kanan untuk melihat kolom lainnya</span>
+                </div>
+                <div class="table-wrap overview-scroll" tabindex="0" aria-label="Data lengkap sheet Capaian">
+                  <table id="overviewTable"></table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="panel-k1">
+            <div class="panel-heading">
+              <div>
+                <p class="section-kicker">Target K1</p>
+                <h2>Detail Bidang Tanah</h2>
+              </div>
+              <div class="table-tools">
+                <input id="searchK1" type="search" placeholder="Cari data K1" aria-label="Cari data K1" />
+                <span id="countK1" class="row-count">0 baris</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="tableK1"></table>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="panel-k2">
+            <div class="panel-heading">
+              <div>
+                <p class="section-kicker">Target K2</p>
+                <h2>Detail Bidang Tanah</h2>
+              </div>
+              <div class="table-tools">
+                <input id="searchK2" type="search" placeholder="Cari data K2" aria-label="Cari data K2" />
+                <span id="countK2" class="row-count">0 baris</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="tableK2"></table>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="panel-k3">
+            <div class="panel-heading">
+              <div>
+                <p class="section-kicker">Target K3</p>
+                <h2>Permasalahan dan Detail Bidang Tanah</h2>
+              </div>
+              <div class="table-tools">
+                <input id="searchK3" type="search" placeholder="Cari data K3" aria-label="Cari data K3" />
+                <span id="countK3" class="row-count">0 baris</span>
+              </div>
+            </div>
+            <div class="k3-layout">
+              <aside class="pivot-panel" aria-label="Filter permasalahan K3">
+                <div class="pivot-head">
+                  <div>
+                    <span class="section-kicker">Pivot K3</span>
+                    <h3>Permasalahan K3 2025</h3>
+                  </div>
+                  <button class="text-button" type="button" id="clearK3Filter">Semua</button>
+                </div>
+                <div id="k3PivotList" class="pivot-list"></div>
+              </aside>
+              <div class="table-wrap">
+                <table id="tableK3"></table>
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js?v=20260624-4"></script>
+  </body>
+</html>
