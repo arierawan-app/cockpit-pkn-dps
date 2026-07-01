@@ -942,7 +942,7 @@ tbody tr:last-child td {
 .pivot-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 12px;
   width: 100%;
   min-height: 44px;
@@ -962,9 +962,10 @@ tbody tr:last-child td {
 }
 
 .pivot-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .pivot-count {
