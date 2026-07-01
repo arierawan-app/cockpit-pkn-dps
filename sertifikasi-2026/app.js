@@ -7,6 +7,8 @@
   const k3ProblemColumnName = "Permasalahan K3 2025";
   const cachePrefix = "sertifDashboardSheet:";
   const emptyFilterValue = "__EMPTY__";
+  let activeK3FilterColumn = "";
+  let activeK3FilterSearch = "";
 
   const state = {
     sheets: {
@@ -940,14 +942,36 @@
   }
 
   function filterRowsByColumnFilters(rows, headers, columnFilters) {
-    const activeFilters = headers
-      .map((header) => [header, columnFilters[header] || ""])
-      .filter(([, value]) => value);
+    const activeFilters = getActiveColumnFilters(headers, columnFilters);
     if (!activeFilters.length) return rows;
 
     return rows.filter((row) => {
-      return activeFilters.every(([header, value]) => getFilterValue(row[header]) === value);
+      return activeFilters.every(([header, values]) => values.has(getFilterValue(row[header])));
     });
+  }
+
+  function getRowsForColumnFilterOptions(column) {
+    const data = state.sheets.K3;
+    const headers = getInformativeHeaders(data.headers, data.rows);
+    let rows = filterRowsBySearch(data.rows, els.searchK3.value);
+
+    if (state.filters.k3Problem) {
+      rows = rows.filter((row) => getK3ProblemValue(row) === state.filters.k3Problem);
+    }
+
+    const filtersWithoutColumn = getActiveColumnFilters(headers, state.filters.k3Columns, column);
+    if (!filtersWithoutColumn.length) return rows;
+
+    return rows.filter((row) => {
+      return filtersWithoutColumn.every(([header, values]) => values.has(getFilterValue(row[header])));
+    });
+  }
+
+  function getActiveColumnFilters(headers, columnFilters, skipHeader = "") {
+    const activeFilters = headers
+      .filter((header) => header !== skipHeader && hasColumnFilter(columnFilters, header))
+      .map((header) => [header, new Set(getColumnFilterValues(columnFilters, header))]);
+    return activeFilters;
   }
 
   function getColumnFilterOptions(headers, rows) {
@@ -963,6 +987,17 @@
         .map(([value, label]) => ({ value, label }));
     });
     return options;
+  }
+
+  function hasColumnFilter(columnFilters, header) {
+    return Object.prototype.hasOwnProperty.call(columnFilters, header);
+  }
+
+  function getColumnFilterValues(columnFilters, header) {
+    const value = columnFilters[header];
+    if (Array.isArray(value)) return value;
+    if (value) return [value];
+    return [];
   }
 
   function getFilterValue(value) {
@@ -981,20 +1016,20 @@
         if (!options.filterable) {
           return `<th scope="col">${escapeHtml(header)}</th>`;
         }
-        const selectedValue = options.columnFilters && options.columnFilters[header] ? options.columnFilters[header] : "";
-        const optionHtml = (options.filterOptions[header] || [])
-          .map(
-            (item) =>
-              `<option value="${escapeAttribute(item.value)}"${item.value === selectedValue ? " selected" : ""}>${escapeHtml(item.label)}</option>`
-          )
-          .join("");
+        const selectedCount = hasColumnFilter(options.columnFilters || {}, header)
+          ? getColumnFilterValues(options.columnFilters, header).length
+          : 0;
+        const buttonLabel = hasColumnFilter(options.columnFilters || {}, header)
+          ? `${formatNumber(selectedCount)} dipilih`
+          : "Semua";
+        const activeClass = hasColumnFilter(options.columnFilters || {}, header) ? " active" : "";
+        const expanded = activeK3FilterColumn === header ? "true" : "false";
         return `
           <th scope="col">
             <span class="column-title">${escapeHtml(header)}</span>
-            <select class="column-filter" data-column="${escapeAttribute(header)}" aria-label="Filter ${escapeAttribute(header)}">
-              <option value="">Semua</option>
-              ${optionHtml}
-            </select>
+            <button class="column-filter-button${activeClass}" type="button" data-column="${escapeAttribute(header)}" aria-haspopup="dialog" aria-expanded="${expanded}">
+              ${escapeHtml(buttonLabel)}
+            </button>
           </th>
         `;
       })
@@ -1009,6 +1044,129 @@
       : `<tr><td class="empty-cell" colspan="${headers.length}">${escapeHtml(options.emptyText || "Belum ada data.")}</td></tr>`;
 
     table.innerHTML = `<thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody>`;
+  }
+
+  function ensureK3FilterMenu() {
+    let menu = document.getElementById("k3FilterMenu");
+    if (menu) return menu;
+
+    menu = document.createElement("div");
+    menu.id = "k3FilterMenu";
+    menu.className = "column-filter-menu";
+    menu.hidden = true;
+    document.body.appendChild(menu);
+    return menu;
+  }
+
+  function openK3FilterMenu(column, button) {
+    activeK3FilterColumn = column;
+    activeK3FilterSearch = "";
+    renderK3FilterMenu();
+    positionK3FilterMenu(button);
+    renderTarget("K3", els.searchK3.value);
+
+    const menu = ensureK3FilterMenu();
+    window.setTimeout(() => {
+      const search = menu.querySelector(".filter-search");
+      if (search) search.focus();
+    }, 0);
+  }
+
+  function closeK3FilterMenu() {
+    activeK3FilterColumn = "";
+    activeK3FilterSearch = "";
+    ensureK3FilterMenu().hidden = true;
+    renderTarget("K3", els.searchK3.value);
+  }
+
+  function positionK3FilterMenu(button) {
+    const menu = ensureK3FilterMenu();
+    const rect = button.getBoundingClientRect();
+    const width = Math.min(320, window.innerWidth - 24);
+    const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+    const top = Math.min(rect.bottom + 8, window.innerHeight - 120);
+
+    menu.style.width = `${width}px`;
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.style.maxHeight = `${Math.max(180, window.innerHeight - top - 12)}px`;
+  }
+
+  function renderK3FilterMenu() {
+    if (!activeK3FilterColumn) return;
+
+    const menu = ensureK3FilterMenu();
+    const data = state.sheets.K3;
+    const headers = getInformativeHeaders(data.headers, data.rows);
+    const rows = getRowsForColumnFilterOptions(activeK3FilterColumn);
+    const options = getColumnFilterOptions(headers, rows)[activeK3FilterColumn] || [];
+    const hasFilter = hasColumnFilter(state.filters.k3Columns, activeK3FilterColumn);
+    const selected = new Set(getColumnFilterValues(state.filters.k3Columns, activeK3FilterColumn));
+    const optionHtml = options.length
+      ? options
+          .map((item) => {
+            const checked = !hasFilter || selected.has(item.value) ? " checked" : "";
+            return `
+              <label class="filter-option" data-filter-label="${escapeAttribute(item.label.toLowerCase())}">
+                <input type="checkbox" data-filter-value="${escapeAttribute(item.value)}"${checked} />
+                <span>${escapeHtml(item.label)}</span>
+              </label>
+            `;
+          })
+          .join("")
+      : '<div class="filter-empty">Tidak ada pilihan</div>';
+
+    menu.hidden = false;
+    menu.innerHTML = `
+      <div class="filter-menu-head">
+        <strong>${escapeHtml(activeK3FilterColumn)}</strong>
+        <button class="filter-close" type="button" data-filter-action="close" aria-label="Tutup filter">Tutup</button>
+      </div>
+      <input class="filter-search" type="search" placeholder="Cari" aria-label="Cari pilihan filter ${escapeAttribute(activeK3FilterColumn)}" value="${escapeAttribute(activeK3FilterSearch)}" />
+      <div class="filter-menu-actions">
+        <button type="button" data-filter-action="all">Semua</button>
+        <button type="button" data-filter-action="none">Kosongkan</button>
+      </div>
+      <div class="filter-option-list">${optionHtml}</div>
+    `;
+    updateK3FilterMenuSearch();
+  }
+
+  function updateK3FilterMenuSearch() {
+    const query = activeK3FilterSearch.trim().toLowerCase();
+    ensureK3FilterMenu()
+      .querySelectorAll(".filter-option")
+      .forEach((option) => {
+        const label = option.dataset.filterLabel || "";
+        option.hidden = Boolean(query) && !label.includes(query);
+      });
+  }
+
+  function updateK3ColumnFilterValue(value, checked) {
+    if (!activeK3FilterColumn) return;
+
+    const data = state.sheets.K3;
+    const headers = getInformativeHeaders(data.headers, data.rows);
+    const options = getColumnFilterOptions(headers, getRowsForColumnFilterOptions(activeK3FilterColumn))[activeK3FilterColumn] || [];
+    const allValues = options.map((item) => item.value);
+    const selected = hasColumnFilter(state.filters.k3Columns, activeK3FilterColumn)
+      ? new Set(getColumnFilterValues(state.filters.k3Columns, activeK3FilterColumn))
+      : new Set(allValues);
+
+    if (checked) {
+      selected.add(value);
+    } else {
+      selected.delete(value);
+    }
+
+    if (selected.size === allValues.length) {
+      delete state.filters.k3Columns[activeK3FilterColumn];
+    } else {
+      state.filters.k3Columns[activeK3FilterColumn] = Array.from(selected);
+    }
+
+    renderTarget("K3", els.searchK3.value);
+    renderK3FilterMenu();
   }
 
   function renderK3Pivot() {
@@ -1075,6 +1233,13 @@
     return escapeHtml(value).replace(/`/g, "&#096;");
   }
 
+  function cssEscape(value) {
+    if (window.CSS && typeof window.CSS.escape === "function") {
+      return window.CSS.escape(value);
+    }
+    return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  }
+
   function bindEvents() {
     document.querySelectorAll(".tab-button").forEach((button) => {
       button.addEventListener("click", () => {
@@ -1088,18 +1253,66 @@
     els.refreshButton.addEventListener("click", loadAllData);
     els.searchK1.addEventListener("input", () => renderTarget("K1", els.searchK1.value));
     els.searchK2.addEventListener("input", () => renderTarget("K2", els.searchK2.value));
-    els.searchK3.addEventListener("input", () => renderTarget("K3", els.searchK3.value));
-    els.tableK3.addEventListener("change", (event) => {
-      const select = event.target.closest(".column-filter");
-      if (!select) return;
-      const column = select.dataset.column;
+    els.searchK3.addEventListener("input", () => {
+      renderTarget("K3", els.searchK3.value);
+      renderK3FilterMenu();
+    });
+    els.tableK3.addEventListener("click", (event) => {
+      const button = event.target.closest(".column-filter-button");
+      if (!button) return;
+      const column = button.dataset.column;
       if (!column) return;
-      if (select.value) {
-        state.filters.k3Columns[column] = select.value;
+
+      if (activeK3FilterColumn === column) {
+        closeK3FilterMenu();
       } else {
-        delete state.filters.k3Columns[column];
+        openK3FilterMenu(column, button);
+      }
+    });
+
+    ensureK3FilterMenu().addEventListener("input", (event) => {
+      if (!event.target.matches(".filter-search")) return;
+      activeK3FilterSearch = event.target.value;
+      updateK3FilterMenuSearch();
+    });
+
+    ensureK3FilterMenu().addEventListener("change", (event) => {
+      const checkbox = event.target.closest("[data-filter-value]");
+      if (!checkbox) return;
+      updateK3ColumnFilterValue(checkbox.dataset.filterValue, checkbox.checked);
+    });
+
+    ensureK3FilterMenu().addEventListener("click", (event) => {
+      event.stopPropagation();
+      const actionButton = event.target.closest("[data-filter-action]");
+      if (!actionButton || !activeK3FilterColumn) return;
+
+      const action = actionButton.dataset.filterAction;
+      if (action === "close") {
+        closeK3FilterMenu();
+        return;
+      }
+      if (action === "all") {
+        delete state.filters.k3Columns[activeK3FilterColumn];
+      }
+      if (action === "none") {
+        state.filters.k3Columns[activeK3FilterColumn] = [];
       }
       renderTarget("K3", els.searchK3.value);
+      renderK3FilterMenu();
+    });
+
+    document.addEventListener("click", (event) => {
+      const menu = ensureK3FilterMenu();
+      const clickedFilterButton = event.target.closest(".column-filter-button");
+      if (!activeK3FilterColumn || menu.contains(event.target) || clickedFilterButton) return;
+      closeK3FilterMenu();
+    });
+
+    window.addEventListener("resize", () => {
+      if (!activeK3FilterColumn) return;
+      const button = els.tableK3.querySelector(`.column-filter-button[data-column="${cssEscape(activeK3FilterColumn)}"]`);
+      if (button) positionK3FilterMenu(button);
     });
 
     els.k3PivotList.addEventListener("click", (event) => {
@@ -1108,12 +1321,14 @@
       state.filters.k3Problem = button.dataset.problem || "";
       renderK3Pivot();
       renderTarget("K3", els.searchK3.value);
+      renderK3FilterMenu();
     });
 
     els.clearK3Filter.addEventListener("click", () => {
       state.filters.k3Problem = "";
       renderK3Pivot();
       renderTarget("K3", els.searchK3.value);
+      renderK3FilterMenu();
     });
   }
 

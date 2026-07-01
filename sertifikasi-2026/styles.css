@@ -764,6 +764,141 @@ th {
   outline: none;
 }
 
+.column-filter-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 30px;
+  margin-top: 7px;
+  padding: 0 8px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.column-filter-button::after {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-left: 8px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--muted);
+}
+
+.column-filter-button:hover,
+.column-filter-button.active,
+.column-filter-button[aria-expanded="true"] {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.column-filter-menu {
+  position: fixed;
+  z-index: 50;
+  display: grid;
+  gap: 10px;
+  overflow: auto;
+  padding: 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 20px 48px rgba(37, 48, 45, 0.22);
+}
+
+.column-filter-menu[hidden] {
+  display: none;
+}
+
+.filter-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.filter-menu-head strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-close,
+.filter-menu-actions button {
+  min-height: 30px;
+  padding: 0 9px;
+  color: var(--teal);
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+input.filter-search {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.84rem;
+}
+
+.filter-menu-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-option-list {
+  display: grid;
+  gap: 2px;
+  max-height: 270px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.filter-option {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 7px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
+.filter-option:hover {
+  background: var(--surface-strong);
+}
+
+.filter-option input {
+  width: 15px;
+  height: 15px;
+  margin: 1px 0 0;
+  accent-color: var(--teal);
+}
+
+.filter-option span {
+  min-width: 0;
+  word-break: break-word;
+}
+
+.filter-empty {
+  padding: 14px 6px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 #tableK1 td,
 #tableK2 td,
 #tableK3 td {
