@@ -735,6 +735,35 @@ th {
   text-transform: none;
 }
 
+#tableK3 th {
+  min-width: 154px;
+}
+
+.column-title {
+  display: block;
+  min-height: 2.4em;
+}
+
+.column-filter {
+  display: block;
+  width: 100%;
+  min-height: 30px;
+  margin-top: 7px;
+  padding: 0 24px 0 8px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 6px;
+  font-size: 0.76rem;
+  line-height: 1.2;
+}
+
+.column-filter:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.24);
+  outline: none;
+}
+
 #tableK1 td,
 #tableK2 td,
 #tableK3 td {

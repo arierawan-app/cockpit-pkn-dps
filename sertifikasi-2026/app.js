@@ -6,6 +6,7 @@
   const k3ProblemColumnIndex = 10;
   const k3ProblemColumnName = "Permasalahan K3 2025";
   const cachePrefix = "sertifDashboardSheet:";
+  const emptyFilterValue = "__EMPTY__";
 
   const state = {
     sheets: {
@@ -19,6 +20,7 @@
       K2: "",
       K3: "",
       k3Problem: "",
+      k3Columns: {},
     },
   };
 
@@ -903,14 +905,24 @@
 
   function renderTarget(name, searchTerm) {
     const data = state.sheets[name];
-    let rows = filterRowsBySearch(data.rows, searchTerm);
     const headers = getInformativeHeaders(data.headers, data.rows);
+    let rows = filterRowsBySearch(data.rows, searchTerm);
 
     if (name === "K3" && state.filters.k3Problem) {
       rows = rows.filter((row) => getK3ProblemValue(row) === state.filters.k3Problem);
     }
 
-    renderTable(els[`table${name}`], headers, rows, { emptyText: `Tidak ada data ${name} yang sesuai filter.` });
+    const filterOptions = name === "K3" ? getColumnFilterOptions(headers, rows) : null;
+    if (name === "K3") {
+      rows = filterRowsByColumnFilters(rows, headers, state.filters.k3Columns);
+    }
+
+    renderTable(els[`table${name}`], headers, rows, {
+      emptyText: `Tidak ada data ${name} yang sesuai filter.`,
+      filterable: name === "K3",
+      columnFilters: state.filters.k3Columns,
+      filterOptions,
+    });
     els[`count${name}`].textContent = `${formatNumber(rows.length)} dari ${formatNumber(data.rows.length)} baris`;
   }
 
@@ -927,6 +939,36 @@
     return rows.filter((row) => Object.values(row).join(" ").toLowerCase().includes(query));
   }
 
+  function filterRowsByColumnFilters(rows, headers, columnFilters) {
+    const activeFilters = headers
+      .map((header) => [header, columnFilters[header] || ""])
+      .filter(([, value]) => value);
+    if (!activeFilters.length) return rows;
+
+    return rows.filter((row) => {
+      return activeFilters.every(([header, value]) => getFilterValue(row[header]) === value);
+    });
+  }
+
+  function getColumnFilterOptions(headers, rows) {
+    const options = {};
+    headers.forEach((header) => {
+      const values = new Map();
+      rows.forEach((row) => {
+        const value = getFilterValue(row[header]);
+        values.set(value, value === emptyFilterValue ? "Tidak Diisi" : value);
+      });
+      options[header] = Array.from(values.entries())
+        .sort((a, b) => a[1].localeCompare(b[1], "id", { numeric: true, sensitivity: "base" }))
+        .map(([value, label]) => ({ value, label }));
+    });
+    return options;
+  }
+
+  function getFilterValue(value) {
+    return cleanHeader(value) || emptyFilterValue;
+  }
+
   function renderTable(table, headers, rows, options = {}) {
     if (!headers.length) {
       table.innerHTML = `<tbody><tr><td class="empty-cell">${escapeHtml(options.emptyText || "Belum ada data.")}</td></tr></tbody>`;
@@ -934,7 +976,29 @@
     }
 
     table.className = options.className || "";
-    const headerHtml = headers.map((header) => `<th scope="col">${escapeHtml(header)}</th>`).join("");
+    const headerHtml = headers
+      .map((header) => {
+        if (!options.filterable) {
+          return `<th scope="col">${escapeHtml(header)}</th>`;
+        }
+        const selectedValue = options.columnFilters && options.columnFilters[header] ? options.columnFilters[header] : "";
+        const optionHtml = (options.filterOptions[header] || [])
+          .map(
+            (item) =>
+              `<option value="${escapeAttribute(item.value)}"${item.value === selectedValue ? " selected" : ""}>${escapeHtml(item.label)}</option>`
+          )
+          .join("");
+        return `
+          <th scope="col">
+            <span class="column-title">${escapeHtml(header)}</span>
+            <select class="column-filter" data-column="${escapeAttribute(header)}" aria-label="Filter ${escapeAttribute(header)}">
+              <option value="">Semua</option>
+              ${optionHtml}
+            </select>
+          </th>
+        `;
+      })
+      .join("");
     const bodyHtml = rows.length
       ? rows
           .map((row) => {
@@ -1025,6 +1089,18 @@
     els.searchK1.addEventListener("input", () => renderTarget("K1", els.searchK1.value));
     els.searchK2.addEventListener("input", () => renderTarget("K2", els.searchK2.value));
     els.searchK3.addEventListener("input", () => renderTarget("K3", els.searchK3.value));
+    els.tableK3.addEventListener("change", (event) => {
+      const select = event.target.closest(".column-filter");
+      if (!select) return;
+      const column = select.dataset.column;
+      if (!column) return;
+      if (select.value) {
+        state.filters.k3Columns[column] = select.value;
+      } else {
+        delete state.filters.k3Columns[column];
+      }
+      renderTarget("K3", els.searchK3.value);
+    });
 
     els.k3PivotList.addEventListener("click", (event) => {
       const button = event.target.closest(".pivot-item");
