@@ -971,21 +971,44 @@
   function fillMergedCells(rows) {
     if (!rows.length) return rows;
     var columns = Object.keys(rows[0]);
-    return rows.map(function (row, index) {
-      if (index === 0) return Object.assign({}, row);
-      var filled = Object.assign({}, row);
-      columns.forEach(function (col) {
-        if (!filled[col] || filled[col].trim() === "") {
-          for (var i = index - 1; i >= 0; i--) {
-            if (rows[i][col] && rows[i][col].trim() !== "") {
-              filled[col] = rows[i][col];
-              break;
+    var filled = rows.map(function (row) { return Object.assign({}, row); });
+
+    columns.forEach(function (col) {
+      var hasMerges = false;
+      for (var i = 0; i < rows.length - 1; i++) {
+        if (rows[i][col] && rows[i][col].trim() !== "" &&
+            (!rows[i + 1][col] || rows[i + 1][col].trim() === "")) {
+          hasMerges = true;
+          break;
+        }
+      }
+      if (!hasMerges) return;
+
+      var currentValue = "";
+      var mergeStart = -1;
+      for (var r = 0; r < rows.length; r++) {
+        if (rows[r][col] && rows[r][col].trim() !== "") {
+          if (mergeStart >= 0 && currentValue) {
+            for (var j = mergeStart; j < r; j++) {
+              filled[j][col] = currentValue;
             }
           }
+          currentValue = rows[r][col];
+          mergeStart = -1;
+        } else {
+          if (mergeStart < 0 && currentValue) {
+            mergeStart = r;
+          }
         }
-      });
-      return filled;
+      }
+      if (mergeStart >= 0 && currentValue) {
+        for (var k = mergeStart; k < rows.length; k++) {
+          filled[k][col] = currentValue;
+        }
+      }
     });
+
+    return filled;
   }
 
   function getInformativeHeaders(headers, rows) {
