@@ -925,6 +925,8 @@ input.filter-search {
 
 #panel-actionplan .table-wrap {
   max-height: min(72vh, 720px);
+  overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 tbody tr:hover td {
