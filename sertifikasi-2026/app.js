@@ -947,7 +947,8 @@
   function renderTarget(name, searchTerm) {
     const data = state.sheets[name];
     const headers = name === "ActionPlan" ? data.headers : getInformativeHeaders(data.headers, data.rows);
-    let rows = filterRowsBySearch(data.rows, searchTerm);
+    const sourceRows = name === "ActionPlan" ? fillMergedCells(data.rows) : data.rows;
+    let rows = filterRowsBySearch(sourceRows, searchTerm);
 
     if (name === "K3" && state.filters.k3Problem) {
       rows = rows.filter((row) => getK3ProblemValue(row) === state.filters.k3Problem);
@@ -965,6 +966,26 @@
       filterOptions,
     });
     els[`count${name}`].textContent = `${formatNumber(rows.length)} dari ${formatNumber(data.rows.length)} baris`;
+  }
+
+  function fillMergedCells(rows) {
+    if (!rows.length) return rows;
+    var columns = Object.keys(rows[0]);
+    return rows.map(function (row, index) {
+      if (index === 0) return Object.assign({}, row);
+      var filled = Object.assign({}, row);
+      columns.forEach(function (col) {
+        if (!filled[col] || filled[col].trim() === "") {
+          for (var i = index - 1; i >= 0; i--) {
+            if (rows[i][col] && rows[i][col].trim() !== "") {
+              filled[col] = rows[i][col];
+              break;
+            }
+          }
+        }
+      });
+      return filled;
+    });
   }
 
   function getInformativeHeaders(headers, rows) {
