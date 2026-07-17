@@ -923,6 +923,10 @@ input.filter-search {
   vertical-align: middle;
 }
 
+#panel-actionplan .table-wrap {
+  max-height: min(72vh, 720px);
+}
+
 tbody tr:hover td {
   background: #f8faf8;
 }
