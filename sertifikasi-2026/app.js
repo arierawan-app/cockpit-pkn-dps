@@ -946,7 +946,7 @@
 
   function renderTarget(name, searchTerm) {
     const data = state.sheets[name];
-    const headers = getInformativeHeaders(data.headers, data.rows);
+    const headers = name === "ActionPlan" ? data.headers : getInformativeHeaders(data.headers, data.rows);
     let rows = filterRowsBySearch(data.rows, searchTerm);
 
     if (name === "K3" && state.filters.k3Problem) {
