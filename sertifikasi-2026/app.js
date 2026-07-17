@@ -44,6 +44,9 @@
     kpiK1Bar: document.getElementById("kpiK1Bar"),
     kpiK2Bar: document.getElementById("kpiK2Bar"),
     kpiK3Bar: document.getElementById("kpiK3Bar"),
+    kpiIgtTotal: document.getElementById("kpiIgtTotal"),
+    kpiIgtBar: document.getElementById("kpiIgtBar"),
+    kpiIgtNote: document.getElementById("kpiIgtNote"),
     compositionTotal: document.getElementById("compositionTotal"),
     compositionChart: document.getElementById("compositionChart"),
     overviewCount: document.getElementById("overviewCount"),
@@ -390,6 +393,30 @@
     });
 
     renderCompositionChart(summaries, total);
+    renderIgtKpi();
+  }
+
+  function renderIgtKpi() {
+    const data = state.sheets.IGT;
+    if (!data.rows.length) {
+      els.kpiIgtTotal.textContent = "-";
+      els.kpiIgtBar.style.width = "0%";
+      els.kpiIgtNote.textContent = "Belum ada data";
+      return;
+    }
+
+    const pctHeader = data.headers.find(function (h) {
+      var lower = h.toLowerCase();
+      return lower.includes("%") && lower.includes("capaian");
+    });
+    const row = data.rows[0];
+    const pctValue = pctHeader ? (row[pctHeader] || "") : "";
+    els.kpiIgtTotal.textContent = pctValue || "-";
+
+    var numericPct = parseFloat(String(pctValue).replace(/%/g, "").replace(",", ".")) || 0;
+    numericPct = Math.min(numericPct, 100);
+    els.kpiIgtBar.style.width = numericPct + "%";
+    els.kpiIgtNote.textContent = data.rows.length ? data.rows.length + " baris" : "";
   }
 
   function getCapaianSummaries() {
