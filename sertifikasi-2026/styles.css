@@ -919,6 +919,10 @@ input.filter-search {
   white-space: pre-line;
 }
 
+#tableActionPlan td[rowspan] {
+  vertical-align: middle;
+}
+
 tbody tr:hover td {
   background: #f8faf8;
 }
