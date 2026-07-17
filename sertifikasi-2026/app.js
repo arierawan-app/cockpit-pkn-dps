@@ -375,7 +375,7 @@
     renderK3Pivot();
     renderTarget("K3", els.searchK3.value);
     renderTarget("IGT", els.searchIGT.value);
-    renderTarget("ActionPlan", els.searchActionPlan.value);
+    renderActionPlan();
   }
 
   function renderKpis() {
@@ -946,9 +946,8 @@
 
   function renderTarget(name, searchTerm) {
     const data = state.sheets[name];
-    const headers = name === "ActionPlan" ? data.headers : getInformativeHeaders(data.headers, data.rows);
-    const sourceRows = name === "ActionPlan" ? fillMergedCells(data.rows) : data.rows;
-    let rows = filterRowsBySearch(sourceRows, searchTerm);
+    const headers = getInformativeHeaders(data.headers, data.rows);
+    let rows = filterRowsBySearch(data.rows, searchTerm);
 
     if (name === "K3" && state.filters.k3Problem) {
       rows = rows.filter((row) => getK3ProblemValue(row) === state.filters.k3Problem);
@@ -968,47 +967,65 @@
     els[`count${name}`].textContent = `${formatNumber(rows.length)} dari ${formatNumber(data.rows.length)} baris`;
   }
 
-  function fillMergedCells(rows) {
-    if (!rows.length) return rows;
-    var columns = Object.keys(rows[0]);
-    var filled = rows.map(function (row) { return Object.assign({}, row); });
+  function renderActionPlan() {
+    var data = state.sheets.ActionPlan;
+    var searchTerm = els.searchActionPlan.value;
+    var headers = data.headers;
+    var rows = filterRowsBySearch(data.rows, searchTerm);
 
-    columns.forEach(function (col) {
-      var hasMerges = false;
-      for (var i = 0; i < rows.length - 1; i++) {
-        if (rows[i][col] && rows[i][col].trim() !== "" &&
-            (!rows[i + 1][col] || rows[i + 1][col].trim() === "")) {
-          hasMerges = true;
-          break;
-        }
-      }
-      if (!hasMerges) return;
+    if (!headers.length || !rows.length) {
+      els.tableActionPlan.innerHTML = '<tbody><tr><td class="empty-cell">Tidak ada data Action Plan yang sesuai filter.</td></tr></tbody>';
+      els.countActionPlan.textContent = '0 dari ' + formatNumber(data.rows.length) + ' baris';
+      return;
+    }
 
-      var currentValue = "";
-      var mergeStart = -1;
+    var covered = {};
+    var rowspanData = {};
+    for (var i = 0; i < rows.length; i++) {
+      covered[i] = {};
+      rowspanData[i] = {};
+    }
+
+    for (var ci = 0; ci < headers.length; ci++) {
+      var header = headers[ci];
       for (var r = 0; r < rows.length; r++) {
-        if (rows[r][col] && rows[r][col].trim() !== "") {
-          if (mergeStart >= 0 && currentValue) {
-            for (var j = mergeStart; j < r; j++) {
-              filled[j][col] = currentValue;
-            }
-          }
-          currentValue = rows[r][col];
-          mergeStart = -1;
-        } else {
-          if (mergeStart < 0 && currentValue) {
-            mergeStart = r;
-          }
-        }
-      }
-      if (mergeStart >= 0 && currentValue) {
-        for (var k = mergeStart; k < rows.length; k++) {
-          filled[k][col] = currentValue;
-        }
-      }
-    });
+        if (covered[r][header]) continue;
+        var cellValue = rows[r][header] || "";
+        if (cellValue.trim() === "") continue;
 
-    return filled;
+        var span = 1;
+        for (var nr = r + 1; nr < rows.length; nr++) {
+          var nextValue = rows[nr][header] || "";
+          if (nextValue.trim() === "") {
+            span++;
+            covered[nr][header] = true;
+          } else {
+            break;
+          }
+        }
+        rowspanData[r][header] = span;
+      }
+    }
+
+    var headerHtml = headers.map(function (h) {
+      return '<th scope="col">' + escapeHtml(h) + '</th>';
+    }).join("");
+
+    var bodyHtml = rows.map(function (row, rowIndex) {
+      var cells = headers.map(function (header) {
+        if (covered[rowIndex][header]) return '';
+        var span = rowspanData[rowIndex][header];
+        var value = row[header] || "";
+        if (span && span > 1) {
+          return '<td rowspan="' + span + '">' + escapeHtml(value) + '</td>';
+        }
+        return '<td>' + escapeHtml(value) + '</td>';
+      }).join("");
+      return '<tr>' + cells + '</tr>';
+    }).join("");
+
+    els.tableActionPlan.innerHTML = '<thead><tr>' + headerHtml + '</tr></thead><tbody>' + bodyHtml + '</tbody>';
+    els.countActionPlan.textContent = formatNumber(rows.length) + ' dari ' + formatNumber(data.rows.length) + ' baris';
   }
 
   function getInformativeHeaders(headers, rows) {
@@ -1341,7 +1358,7 @@
       renderK3FilterMenu();
     });
     els.searchIGT.addEventListener("input", () => renderTarget("IGT", els.searchIGT.value));
-    els.searchActionPlan.addEventListener("input", () => renderTarget("ActionPlan", els.searchActionPlan.value));
+    els.searchActionPlan.addEventListener("input", () => renderActionPlan());
     els.tableK3.addEventListener("click", (event) => {
       const button = event.target.closest(".column-filter-button");
       if (!button) return;
