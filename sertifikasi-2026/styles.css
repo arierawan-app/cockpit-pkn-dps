@@ -719,13 +719,15 @@ th {
 
 #tableK1,
 #tableK2,
-#tableK3 {
+#tableK3,
+#tableIGT {
   min-width: 1320px;
 }
 
 #tableK1 th,
 #tableK2 th,
-#tableK3 th {
+#tableK3 th,
+#tableIGT th {
   min-width: 118px;
   max-width: 180px;
   padding: 9px 8px;
@@ -901,7 +903,8 @@ input.filter-search {
 
 #tableK1 td,
 #tableK2 td,
-#tableK3 td {
+#tableK3 td,
+#tableIGT td {
   max-width: 220px;
   padding: 9px 10px;
   font-size: 0.84rem;

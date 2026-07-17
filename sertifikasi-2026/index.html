@@ -71,6 +71,7 @@
             <button class="tab-button" type="button" data-tab="k1">Detail K1</button>
             <button class="tab-button" type="button" data-tab="k2">Detail K2</button>
             <button class="tab-button" type="button" data-tab="k3">Detail K3</button>
+            <button class="tab-button" type="button" data-tab="igt">Detail IGT</button>
           </nav>
 
           <section class="tab-panel active" id="panel-overview" aria-labelledby="Capaian">
@@ -161,6 +162,22 @@
               <div class="table-wrap">
                 <table id="tableK3"></table>
               </div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="panel-igt">
+            <div class="panel-heading">
+              <div>
+                <p class="section-kicker">Target IGT</p>
+                <h2>Detail Bidang Tanah</h2>
+              </div>
+              <div class="table-tools">
+                <input id="searchIGT" type="search" placeholder="Cari data IGT" aria-label="Cari data IGT" />
+                <span id="countIGT" class="row-count">0 baris</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="tableIGT"></table>
             </div>
           </section>
         </section>

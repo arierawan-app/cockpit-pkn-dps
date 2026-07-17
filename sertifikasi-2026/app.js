@@ -2,7 +2,7 @@
   "use strict";
 
   const sheetId = "1bKnSu28XEAfk55WygUjLLvR0uyZXmOZ6tbMQOzW0DKo";
-  const sheetNames = ["Capaian", "K1", "K2", "K3"];
+  const sheetNames = ["Capaian", "K1", "K2", "K3", "IGT"];
   const k3ProblemColumnIndex = 10;
   const k3ProblemColumnName = "Permasalahan K3 2025";
   const cachePrefix = "sertifDashboardSheet:";
@@ -16,11 +16,13 @@
       K1: { headers: [], rows: [] },
       K2: { headers: [], rows: [] },
       K3: { headers: [], rows: [] },
+      IGT: { headers: [], rows: [] },
     },
     filters: {
       K1: "",
       K2: "",
       K3: "",
+      IGT: "",
       k3Problem: "",
       k3Columns: {},
     },
@@ -58,6 +60,9 @@
     tableK3: document.getElementById("tableK3"),
     k3PivotList: document.getElementById("k3PivotList"),
     clearK3Filter: document.getElementById("clearK3Filter"),
+    searchIGT: document.getElementById("searchIGT"),
+    countIGT: document.getElementById("countIGT"),
+    tableIGT: document.getElementById("tableIGT"),
   };
 
   function buildUrl(sheetName, callbackName) {
@@ -361,6 +366,7 @@
     renderTarget("K2", els.searchK2.value);
     renderK3Pivot();
     renderTarget("K3", els.searchK3.value);
+    renderTarget("IGT", els.searchIGT.value);
   }
 
   function renderKpis() {
@@ -1257,6 +1263,7 @@
       renderTarget("K3", els.searchK3.value);
       renderK3FilterMenu();
     });
+    els.searchIGT.addEventListener("input", () => renderTarget("IGT", els.searchIGT.value));
     els.tableK3.addEventListener("click", (event) => {
       const button = event.target.closest(".column-filter-button");
       if (!button) return;
