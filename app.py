@@ -130,7 +130,7 @@ def main():
     # ── SIDEBAR FILTER ──
     with st.sidebar:
         st.title("🏛️ Dashboard Aset BMN")
-        st.caption("Provinsi Bali")
+        st.caption("**KPKNL Denpasar**")
 
         st.markdown("---")
         st.subheader("🔍 Filter Data")
