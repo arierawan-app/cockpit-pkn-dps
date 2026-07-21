@@ -93,6 +93,9 @@ def clean_kab(name):
     if n_norm in ("denpasar", "bali"): return "KOTA DENPASAR"
     return name.strip().upper() if name else None
 
+BALI_CENTER = [-8.45, 115.075]
+BALI_BOUNDS = [[-8.85, 114.40], [-8.05, 115.75]]
+
 BALI_CENTERS = {
     "KAB. BADUNG":       (-8.5819, 115.1775),
     "KAB. BANGLI":       (-8.4543, 115.3547),
@@ -351,7 +354,7 @@ def main():
         })
 
         m3 = folium.Map(
-            location=[-8.4095, 115.1889],
+            location=BALI_CENTER,
             zoom_start=9,
             tiles="CartoDB positron",
             zoom_control=False,
@@ -359,6 +362,7 @@ def main():
             dragging=False,
             doubleClickZoom=False,
         )
+        m3.fit_bounds(BALI_BOUNDS)
         for _, row in df_agg_nup.iterrows():
             kab = row["kab_clean"]
             if kab in BALI_CENTERS:
@@ -466,7 +470,7 @@ def main():
                 st.subheader("🗺️ Peta Sebaran Satker")
                 df_map_satker = df_s.groupby("Kab/Kota").size().reset_index(name="jumlah")
                 m2 = folium.Map(
-                    location=[-8.4095, 115.1889],
+                    location=BALI_CENTER,
                     zoom_start=9,
                     tiles="CartoDB positron",
                     zoom_control=False,
@@ -474,6 +478,7 @@ def main():
                     dragging=False,
                     doubleClickZoom=False,
                 )
+                m2.fit_bounds(BALI_BOUNDS)
                 for _, row in df_map_satker.iterrows():
                     kab = row["Kab/Kota"]
                     jml = int(row["jumlah"])
