@@ -252,11 +252,6 @@ def main():
             column_config={"golongan_bmn": "Golongan BMN"},
         )
 
-        st.markdown(
-            f"**TOTAL &nbsp;&nbsp;&nbsp; {total_aset:,} &nbsp;&nbsp;&nbsp; {fmt_rupiah(total_nilai_perolehan)} "
-            f"&nbsp;&nbsp;&nbsp; {fmt_rupiah(total_nilai_buku)}**",
-        )
-
     with col_b:
         st.subheader("📈 Grafik Jumlah Aset per Golongan")
         if not df_golongan.empty:
