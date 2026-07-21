@@ -208,9 +208,10 @@ def main():
     with col3:
         st.metric("📖 Total Nilai Buku", fmt_rupiah(total_nilai_buku))
     with col4:
-        satker_detail_file = CACHE_DIR / "satker_detail.parquet"
-        jml_satker = 245 if satker_detail_file.exists() else 0
-        st.metric("🏢 Satuan Kerja", f"{jml_satker:,}")
+        jml_satker_filtered = con.execute(
+            f"SELECT COUNT(DISTINCT nama_satker) FROM master_aset {where_clause} WHERE nama_satker IS NOT NULL"
+        ).fetchone()[0]
+        st.metric("🏢 Satuan Kerja", f"{jml_satker_filtered:,}")
 
     st.markdown("---")
 
