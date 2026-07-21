@@ -169,13 +169,13 @@ def main():
     # ── QUERY DASAR ──
     kondisi = []
     if pilihan_golongan:
-        vals = ", ".join([f"'{g}'" for g in pilihan_golongan])
+        vals = ", ".join([f"'{g.replace(chr(39), chr(39)+chr(39))}'" for g in pilihan_golongan])
         kondisi.append(f"golongan_bmn IN ({vals})")
     if pilihan_jenis:
-        vals = ", ".join([f"'{j}'" for j in pilihan_jenis])
+        vals = ", ".join([f"'{j.replace(chr(39), chr(39)+chr(39))}'" for j in pilihan_jenis])
         kondisi.append(f"jenis_bmn IN ({vals})")
     if pilihan_satker:
-        vals = ", ".join([f"'{s}'" for s in pilihan_satker])
+        vals = ", ".join([f"'{s.replace(chr(39), chr(39)+chr(39))}'" for s in pilihan_satker])
         kondisi.append(f"nama_satker IN ({vals})")
 
     where_clause = "WHERE " + " AND ".join(kondisi) if kondisi else ""
