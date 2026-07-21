@@ -180,6 +180,8 @@ def main():
 
     where_clause = "WHERE " + " AND ".join(kondisi) if kondisi else ""
 
+    where_ext = (" AND " + " AND ".join(kondisi)) if kondisi else ""
+
     # ── METRIC CARDS ──
     total_aset = con.execute(f"SELECT COUNT(*) FROM master_aset {where_clause}").fetchone()[0]
     total_nilai_perolehan = con.execute(
@@ -336,8 +338,8 @@ def main():
         df_map_nup = con.execute(f"""
             SELECT kab_kota as kab_raw, COUNT(*) as jumlah_aset,
                    COALESCE(SUM(nilai_perolehan), 0) as total_nilai
-            FROM master_aset {where_clause}
-            WHERE kab_kota IS NOT NULL
+            FROM master_aset
+            WHERE kab_kota IS NOT NULL {where_ext}
             GROUP BY kab_kota
         """).df()
 
