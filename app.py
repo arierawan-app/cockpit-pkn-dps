@@ -252,6 +252,11 @@ def main():
             column_config={"golongan_bmn": "Golongan BMN"},
         )
 
+        st.markdown(
+            f"**TOTAL &nbsp;&nbsp;&nbsp; {total_aset:,} &nbsp;&nbsp;&nbsp; {fmt_rupiah(total_nilai_perolehan)} "
+            f"&nbsp;&nbsp;&nbsp; {fmt_rupiah(total_nilai_buku)}**",
+        )
+
     with col_b:
         st.subheader("📈 Grafik Jumlah Aset per Golongan")
         if not df_golongan.empty:
@@ -479,7 +484,6 @@ def main():
                     dragging=False,
                     doubleClickZoom=False,
                 )
-                m2.fit_bounds(BALI_BOUNDS)
                 for _, row in df_map_satker.iterrows():
                     kab = row["Kab/Kota"]
                     jml = int(row["jumlah"])
