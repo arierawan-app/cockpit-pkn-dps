@@ -389,7 +389,7 @@ def main():
         top_filter = st.selectbox("Kategori:", options=["Nilai Perolehan", "Jumlah BMN"])
 
     if top_unit == "K/L":
-        df_kl = con.execute(f"""
+        df_top = con.execute(f"""
             SELECT \"Nama K/L\" as nama, COALESCE(SUM(m.nilai_perolehan), 0) as total_nilai,
                    COUNT(*) as jumlah
             FROM read_parquet('{CACHE_DIR / "satker_detail.parquet"}') s
