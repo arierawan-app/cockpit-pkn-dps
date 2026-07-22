@@ -382,41 +382,53 @@ def main():
 
     st.markdown("---")
 
-    top_filter = st.selectbox(
-        "Kategori Top 20 Satker:",
-        options=["Nilai Perolehan", "Jumlah BMN"],
-    )
+    col_top1, col_top2 = st.columns(2)
+    with col_top1:
+        top_unit = st.selectbox("Top 20:", options=["Satuan Kerja", "K/L"])
+    with col_top2:
+        top_filter = st.selectbox("Kategori:", options=["Nilai Perolehan", "Jumlah BMN"])
 
-    if top_filter == "Nilai Perolehan":
-        df_top = con.execute("""
-            SELECT nama_satker, COALESCE(SUM(nilai_perolehan), 0) as total_nilai
-            FROM master_aset
-            GROUP BY nama_satker
+    if top_unit == "K/L":
+        df_kl = con.execute(f"""
+            SELECT \"Nama K/L\" as nama, COALESCE(SUM(m.nilai_perolehan), 0) as total_nilai,
+                   COUNT(*) as jumlah
+            FROM read_parquet('{CACHE_DIR / "satker_detail.parquet"}') s
+            JOIN master_aset m ON s.\"Nama Satker\" = m.nama_satker
+            GROUP BY \"Nama K/L\"
+            ORDER BY total_nilai DESC
+            LIMIT 20
+        """).df() if top_filter == "Nilai Perolehan" else con.execute(f"""
+            SELECT \"Nama K/L\" as nama, COUNT(m.nomor) as total_nilai
+            FROM read_parquet('{CACHE_DIR / "satker_detail.parquet"}') s
+            JOIN master_aset m ON s.\"Nama Satker\" = m.nama_satker
+            GROUP BY \"Nama K/L\"
             ORDER BY total_nilai DESC
             LIMIT 20
         """).df()
-        title_top = "Top 20 Satker — Nilai Perolehan (Rp)"
-        label_x = "Nilai Perolehan"
+        label_y = "K/L"
+        label_x = "Nilai Perolehan (Rp)" if top_filter == "Nilai Perolehan" else "Jumlah BMN"
+        title_top = f"Top 20 K/L — {label_x}"
     else:
         df_top = con.execute("""
-            SELECT nama_satker, COUNT(*) as total_nilai
-            FROM master_aset
-            GROUP BY nama_satker
-            ORDER BY total_nilai DESC
-            LIMIT 20
+            SELECT nama_satker as nama, COALESCE(SUM(nilai_perolehan), 0) as total_nilai
+            FROM master_aset GROUP BY nama_satker ORDER BY total_nilai DESC LIMIT 20
+        """).df() if top_filter == "Nilai Perolehan" else con.execute("""
+            SELECT nama_satker as nama, COUNT(*) as total_nilai
+            FROM master_aset GROUP BY nama_satker ORDER BY total_nilai DESC LIMIT 20
         """).df()
-        title_top = "Top 20 Satker — Jumlah BMN"
-        label_x = "Jumlah BMN"
+        label_y = "Satuan Kerja"
+        label_x = "Nilai Perolehan (Rp)" if top_filter == "Nilai Perolehan" else "Jumlah BMN"
+        title_top = f"Top 20 Satker — {label_x}"
 
     if not df_top.empty:
         fig = px.bar(
             df_top,
-            y="nama_satker",
+            y="nama",
             x="total_nilai",
             orientation="h",
             color="total_nilai",
             title=title_top,
-            labels={"nama_satker": "Satuan Kerja", "total_nilai": label_x},
+            labels={"nama": label_y, "total_nilai": label_x},
             height=550,
             color_continuous_scale="viridis",
         )
