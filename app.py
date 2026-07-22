@@ -155,6 +155,21 @@ def main():
             placeholder="Semua jenis...",
         )
 
+        kl_detail_path = CACHE_DIR / "satker_detail.parquet"
+        if kl_detail_path.exists():
+            kl_list = con.execute(f"""
+                SELECT DISTINCT \"Nama K/L\" FROM read_parquet('{kl_detail_path}')
+                ORDER BY \"Nama K/L\"
+            """).fetchall()
+            pilihan_kl = st.multiselect(
+                "K/L",
+                options=[k[0] for k in kl_list],
+                default=None,
+                placeholder="Semua K/L...",
+            )
+        else:
+            pilihan_kl = []
+
         satker_list = con.execute(
             "SELECT DISTINCT nama_satker FROM master_aset WHERE nama_satker IS NOT NULL ORDER BY nama_satker"
         ).fetchall()
@@ -177,6 +192,12 @@ def main():
     if pilihan_jenis:
         vals = ", ".join([f"'{j.replace(chr(39), chr(39)+chr(39))}'" for j in pilihan_jenis])
         kondisi.append(f"jenis_bmn IN ({vals})")
+    if pilihan_kl:
+        vals = ", ".join([f"'{k.replace(chr(39), chr(39)+chr(39))}'" for k in pilihan_kl])
+        kondisi.append(
+            f"nama_satker IN (SELECT \"Nama Satker\" FROM read_parquet('{CACHE_DIR / 'satker_detail.parquet'}') "
+            f"WHERE \"Nama K/L\" IN ({vals}))"
+        )
     if pilihan_satker:
         vals = ", ".join([f"'{s.replace(chr(39), chr(39)+chr(39))}'" for s in pilihan_satker])
         kondisi.append(f"nama_satker IN ({vals})")
