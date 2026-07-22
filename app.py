@@ -248,7 +248,7 @@ def main():
         ORDER BY {GOLONGAN_ORDER_SQL}
     """).df()
 
-    col_a, col_b = st.columns([1, 2])
+    col_a, col_b = st.columns([1.2, 1.8])
 
     with col_a:
         st.subheader("📊 Ringkasan per Golongan")
