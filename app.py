@@ -209,7 +209,7 @@ def main():
         st.metric("📖 Total Nilai Buku", fmt_rupiah(total_nilai_buku))
     with col4:
         jml_satker_filtered = con.execute(
-            f"SELECT COUNT(DISTINCT nama_satker) FROM master_aset {where_clause} WHERE nama_satker IS NOT NULL"
+            f"SELECT COUNT(DISTINCT nama_satker) FROM master_aset WHERE nama_satker IS NOT NULL {where_ext}"
         ).fetchone()[0]
         st.metric("🏢 Satuan Kerja", f"{jml_satker_filtered:,}")
 
