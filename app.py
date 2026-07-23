@@ -337,11 +337,17 @@ def main() -> None:
     total_aset = _query("SELECT COUNT(*) as v FROM master_aset {where}").iloc[0, 0] if _query("SELECT COUNT(*) as v FROM master_aset {where}").shape[0] > 0 else 0
     total_np = _query("SELECT COALESCE(SUM(nilai_perolehan), 0) as v FROM master_aset {where}")
     total_nb = _query("SELECT COALESCE(SUM(nilai_buku), 0) as v FROM master_aset {where}")
-    total_satker = _query("SELECT COUNT(DISTINCT nama_satker) as v FROM master_aset WHERE nama_satker IS NOT NULL {where_and}")
+
+    where_satker_only, bindings_satker = build_where(
+        {"pilihan_golongan": [], "pilihan_jenis": [], "pilihan_kl": pilihan_kl,
+         "pilihan_satker": pilihan_satker, "satker_detail_path": SATKER_DETAIL_PATH}, con)
+    total_satker_sql = ("SELECT COUNT(DISTINCT nama_satker) as v FROM master_aset WHERE nama_satker IS NOT NULL"
+                        + ((" AND " + where_satker_only) if where_satker_only else ""))
+    total_satker_raw = _safe_query(con, total_satker_sql, bindings_satker if where_satker_only else None)
 
     total_nilai_perolehan = total_np.iloc[0, 0] if not total_np.empty else 0
     total_nilai_buku = total_nb.iloc[0, 0] if not total_nb.empty else 0
-    jml_satker_filtered = int(total_satker.iloc[0, 0]) if not total_satker.empty else 0
+    jml_satker_filtered = int(total_satker_raw.iloc[0, 0]) if not total_satker_raw.empty else 0
 
     st.title("🏛️ Dashboard Aset BMN")
     st.caption("📡 Sumber data: SIMAN per 19 Juli 2026")
