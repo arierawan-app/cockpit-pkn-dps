@@ -352,6 +352,9 @@ def main() -> None:
     else:
         jml_satker_filtered = 0
 
+    total_nilai_perolehan = total_np.iloc[0, 0] if not total_np.empty else 0
+    total_nilai_buku = total_nb.iloc[0, 0] if not total_nb.empty else 0
+
     st.title("🏛️ Dashboard Aset BMN")
     st.caption("📡 Sumber data: SIMAN per 19 Juli 2026")
 
