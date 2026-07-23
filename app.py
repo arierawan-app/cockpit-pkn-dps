@@ -341,13 +341,16 @@ def main() -> None:
     where_satker_only, bindings_satker = build_where(
         {"pilihan_golongan": [], "pilihan_jenis": [], "pilihan_kl": pilihan_kl,
          "pilihan_satker": pilihan_satker, "satker_detail_path": SATKER_DETAIL_PATH}, con)
-    total_satker_sql = ("SELECT COUNT(DISTINCT nama_satker) as v FROM master_aset WHERE nama_satker IS NOT NULL"
-                        + ((" AND " + where_satker_only) if where_satker_only else ""))
-    total_satker_raw = _safe_query(con, total_satker_sql, bindings_satker if where_satker_only else None)
 
-    total_nilai_perolehan = total_np.iloc[0, 0] if not total_np.empty else 0
-    total_nilai_buku = total_nb.iloc[0, 0] if not total_nb.empty else 0
-    jml_satker_filtered = int(total_satker_raw.iloc[0, 0]) if not total_satker_raw.empty else 0
+    if pilihan_kl or pilihan_satker:
+        total_satker_sql = ("SELECT COUNT(DISTINCT nama_satker) as v FROM master_aset WHERE nama_satker IS NOT NULL"
+                            + ((" AND " + where_satker_only) if where_satker_only else ""))
+        total_satker_raw = _safe_query(con, total_satker_sql, bindings_satker if where_satker_only else None)
+        jml_satker_filtered = int(total_satker_raw.iloc[0, 0]) if not total_satker_raw.empty else 0
+    elif SATKER_DETAIL_EXISTS:
+        jml_satker_filtered = _safe_query(con, f"SELECT COUNT(*) as v FROM read_parquet('{SATKER_DETAIL_PATH}')").iloc[0, 0]
+    else:
+        jml_satker_filtered = 0
 
     st.title("🏛️ Dashboard Aset BMN")
     st.caption("📡 Sumber data: SIMAN per 19 Juli 2026")
