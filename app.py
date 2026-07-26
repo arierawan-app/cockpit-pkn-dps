@@ -264,6 +264,11 @@ def main() -> None:
     with st.sidebar:
         logo_path = BASE_DIR / "melasti.png"
         if logo_path.exists():
+            st.markdown("""
+            <style>
+            [data-testid="stSidebar"] img {margin-top: -40px; margin-bottom: -15px;}
+            </style>
+            """, unsafe_allow_html=True)
             st.image(str(logo_path), width=80)
         st.title(CONFIG["sidebar_title"])
         st.caption(CONFIG["sidebar_subtitle"])
