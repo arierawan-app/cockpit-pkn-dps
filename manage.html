@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html>
+ <head>
+   <base target="_top">
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  
+   <style>
+     body { background-color: #f4f6f9; padding: 20px; font-family: sans-serif; }
+     .table-container { background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); padding: 20px; }
+     table { font-size: 0.85rem; }
+     th, td { vertical-align: middle; }
+     th { white-space: nowrap; }
+    
+     /* --- FROZEN HEADERS --- */
+     thead tr:nth-child(1) th {
+       position: sticky; top: 0; background-color: #212529; color: white; z-index: 1020; border-bottom: none;
+     }
+     thead tr:nth-child(2) th {
+       position: sticky; top: 41px; background-color: #f8f9fa; color: #212529; z-index: 1019; box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+     }
+    
+     .filter-input { width: 100%; font-size: 0.75rem; padding: 4px; margin-top: 5px; border: 1px solid #ced4da; border-radius: 3px; }
+     .edit-input { width: 100%; min-width: 120px; font-size: 0.8rem; padding: 4px; }
+     .cell-nowrap { white-space: nowrap; }
+     .cell-truncate { max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    
+     .pagination { margin-bottom: 0; }
+     .page-link { color: #212529; cursor: pointer; }
+     .page-item.active .page-link { background-color: #212529; border-color: #212529; color: white; }
+
+
+     .modal-header { background: #0d6efd; color: white; }
+     .form-label-sm { font-size: 0.85rem; font-weight: 600; margin-bottom: 2px; color: #495057;}
+     .modal-body { max-height: 70vh; overflow-y: auto; background-color: #f8f9fa; }
+     .modal-input { border-radius: 2px; }
+     textarea.modal-input { resize: vertical; min-height: 80px; }
+    
+     #modalLoadingOverlay {
+       position: absolute; top:0; left:0; width:100%; height:100%;
+       background: rgba(255,255,255,0.9); z-index: 1055;
+       display: none; flex-direction: column; justify-content: center; align-items: center;
+     }
+   </style>
+ </head>
+ <body>
+  
+ <div class="mb-3 d-flex justify-content-between align-items-center">
+ <div>
+   <button onclick="goHome()" class="btn btn-outline-secondary btn-sm me-2">
+     <i class="fas fa-arrow-left"></i> Back
+   </button>
+  
+   <button onclick="refreshTable()" class="btn btn-secondary btn-sm">
+     <i class="fas fa-sync-alt"></i> Refresh
+   </button>
+ </div>
+ <h5 class="text-primary m-0">Manage Master Data</h5>
+</div>
+
+
+     <div class="table-container">
+       <div class="table-responsive" style="max-height: 75vh;">
+         <table class="table table-bordered table-hover align-middle" id="masterTable">
+           <thead class="table-dark">
+             <tr id="headerRow"></tr>
+             <tr id="filterRow" class="table-light"></tr>
+           </thead>
+           <tbody id="tableBody">
+             <tr><td colspan="100%" class="text-center p-4">Loading Data... <i class="fas fa-spinner fa-spin"></i></td></tr>
+           </tbody>
+         </table>
+       </div>
+       <div class="d-flex justify-content-between align-items-center mt-3">
+         <div id="pageInfo" class="text-muted small">Showing 0 to 0 of 0 entries</div>
+         <nav><ul class="pagination pagination-sm" id="paginationControls"></ul></nav>
+       </div>
+     </div>
+   </div>
+
+
+   <div class="modal fade" id="transferModal" tabindex="-1" aria-hidden="true">
+     <div class="modal-dialog modal-xl">
+       <div class="modal-content position-relative">
+        
+         <div id="modalLoadingOverlay">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2 fw-bold text-secondary">Checking External Database...</div>
+         </div>
+
+
+         <div class="modal-header">
+           <h5 class="modal-title"><i class="fas fa-share-square"></i> Transfer Data</h5>
+           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+         </div>
+         <div class="modal-body">
+          
+           <div class="d-flex justify-content-between align-items-center mb-3">
+             <div class="alert alert-info py-1 px-2 m-0 small" id="statusAlert">
+               <i class="fas fa-info-circle"></i> Data telah diisi otomatis. Cek dan lengkapi.
+             </div>
+             <div class="form-check form-switch border p-2 rounded bg-white">
+               <input class="form-check-input" type="checkbox" id="checkSamePemohon" onchange="togglePemohon()">
+               <label class="form-check-label small fw-bold" for="checkSamePemohon">Satker = Pemohon</label>
+             </div>
+           </div>
+
+
+           <form id="transferForm">
+             <div class="row g-2" id="modalFormContainer">
+             </div>
+           </form>
+         </div>
+         <div class="modal-footer">
+           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+           <button type="button" class="btn btn-primary" onclick="submitTransfer()">
+             <i class="fas fa-paper-plane"></i> Kirim Data
+           </button>
+         </div>
+       </div>
+     </div>
+   </div>
+
+
+  <div class="modal fade" id="checklistPreviewModal" tabindex="-1" aria-hidden="true">
+ <div class="modal-dialog">
+   <div class="modal-content">
+     <div class="modal-header bg-teal text-white" style="background-color: #20c997;">
+       <h5 class="modal-title"><i class="fas fa-tasks me-2"></i>Edit Checklist</h5>
+       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+     </div>
+     <div class="modal-body">
+      
+       <input type="hidden" id="checklistRowIndex">
+
+
+       <h6 class="fw-bold text-success mb-2">Dokumen Terlampir:</h6>
+      
+       <ul id="previewList" class="list-group list-group-flush mb-3">
+         </ul>
+
+
+       <button type="button" class="btn btn-sm btn-outline-success mb-3" onclick="addModalChecklistItem()">
+          <i class="fas fa-plus circle me-1"></i> Tambah Item
+       </button>
+      
+       <h6 class="fw-bold text-secondary border-top pt-2">Catatan Tambahan:</h6>
+       <textarea id="previewNotes" class="form-control form-control-sm" rows="3" placeholder="Tulis catatan..."></textarea>
+     </div>
+     <div class="modal-footer">
+   <button type="button" class="btn btn-outline-secondary btn-sm me-auto" onclick="copyChecklistToClipboard()">
+      <i class="fas fa-copy me-1"></i> Salin
+   </button>
+
+   <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+   <button type="button" class="btn btn-success btn-sm" onclick="saveChecklistChanges()">
+      <i class="fas fa-save me-1"></i> Simpan Perubahan
+   </button>
+</div>
+   </div>
+ </div>
+</div>
+
+
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+   <script>
+     var allData = []; var filteredData = []; var globalHeaders = [];
+     var currentPage = 1; var rowsPerPage = 100;
+     var currentRowBeingEdited = null; var originalHTML = "";
+
+
+     // INTERNAL TICKET INDEX: Column J = Index 9
+     var INTERNAL_TIKET_INDEX = 9;
+
+
+     var SCHEMA_PSP = {
+       type: "PSP",
+       tiketIndex: INTERNAL_TIKET_INDEX,
+       labels: [
+         "PIC", "K/L", "Pimpinan KL", "Satker",
+         "Pimpinan Satuan Kerja", "Alamat Satker", "Pemohon", "Pimpinan Pemohon", "Alamat Pemohon",
+         "Nomor Surat Permohonan", "Tanggal Surat Permohonan", "Hal Surat Permohonan", "No Tiket SIMAN", "Tgl Diterima Lengkap",
+         "Kelengkapan Dokumen", "Jenis BMN", "Uraian BMN", "Nilai BMN", "Uraian Nilai BMN",
+         "UPPER K/L", "Salinan I", "Salinan II", "Salinan III", "Salinan IV",
+         "Salinan V", "Salinan VI", "Salinan VII", "Salinan VIII", "Salinan IX"
+       ],
+       mapping: { 1: 1, 3: 4, 6: 10, 7: 11, 9: 13, 8: 14, 5: 16, 13: 18 },
+       terbilangTriggers: [ { src: 18, dest: 19 } ],
+       textareas: [12, 15],
+       dates: [11, 14],
+       readonly: [19],
+       toggleMap: { 4:7, 5:8, 6:9 }
+     };
+
+
+   var SCHEMA_SEWA = {
+       type: "SEWA",
+       tiketIndex: INTERNAL_TIKET_INDEX,
+       labels: [
+         "PIC", "K/L", "Pimpinan KL", "Satker", "Pimpinan Satuan Kerja",
+         "Alamat Satker", "Pemohon", "Pimpinan Pemohon", "Alamat Pemohon", "Alamat Objek BMN",
+         "Nomor Surat Permohonan", "Tanggal Surat Permohonan", "Hal Surat Permohonan", "No Tiket SIMAN", "Tgl Diterima Lengkap",
+         "Calon Penyewa", "Peruntukkan", "Jenis BMN", "Luas Sewa", "Jangka Waktu Sewa",
+         "Nilai BMN Proporsional", "Terbilang Nilai BMN", "Total Nilai Sewa", "Terbilang Nilai Sewa", "Tim Penilai",
+         "Dasar Nilai Sewa", "No Lap. Penilaian", "Tanggal Lap. Penilaian"
+       ],
+       // 5: 18 maps Column F (Internal Index 5) to Modal Field 18
+       mapping: { 1: 1, 3: 4, 6: 11, 7: 12, 12: 13, 9: 14, 8: 15, 13: 21, 5: 18 },
+       terbilangTriggers: [ { src: 21, dest: 22 }, { src: 23, dest: 24 } ],
+       textareas: [13, 17],
+       dates: [12, 15, 28],
+       readonly: [22, 24],
+       toggleMap: { 4:7, 5:8, 6:9 },
+       assessmentFields: [23, 24, 27, 28]
+     };
+
+
+     var SCHEMA_PINDAHHAPUS = {
+       type: "PINDAHHAPUS",
+       tiketIndex: INTERNAL_TIKET_INDEX,
+       labels: [
+         "PIC", "K/L", "Pimpinan KL", "Satker", "Pimpinan Satuan Kerja", "Alamat Satker",
+         "Pemohon", "Pimpinan Pemohon", "Alamat Pemohon",
+         "Nomor Surat Permohonan", "Tanggal Surat Permohonan", "Hal Surat Pernohonan",
+         "No Tiket SIMAN", "Tgl Diterima Lengkap", "Jenis Pengelolaan", "Jenis BMN", "Uraian Jenis",
+         "Sebab Lain", "Total Harga Perolehan", "Terbilang Harga Perolehan", "Total Limit Usulan", "Terbilang Limit Usulan",
+         "Uraian Panitia/Tim Satker", "Uraian BA Penelitian Satker", "No BA Penelitian Satker", "Tgl BA. Penelitian Satker",
+         "Uraian SPTJM Nilai Limit", "No SPTJM Nilai Limit", "Tgl SPTJM Nilai Limit", "Tim Penilai",
+         "No Lap Penilaian", "Tanggal Lap Penilaian",
+         "Nilai Penilaian", "Terbilang Nilai Penilaian",
+         "Tot Limit yang disetujui", "Terbilang Limit yang disetujui",
+         "No Kertas Kerja Penaksiran", "Tgl Kertas Kerja Penaksiran"
+       ],
+       mapping: { 1: 1, 3: 4, 6: 10, 7: 11, 12: 12, 9: 13, 8: 14, 4: 15, 5: 16, 13: 19, 14: 21 },
+       terbilangTriggers: [ { src: 19, dest: 20 }, { src: 21, dest: 22 }, { src: 33, dest: 34 }, { src: 35, dest: 36 } ],
+       textareas: [12, 17, 18, 23, 24, 27],
+       dates: [11, 14, 26, 29, 32, 38],
+       readonly: [20, 22, 34, 36],
+       toggleMap: { 4:7, 5:8, 6:9 },
+       assessmentFields: [30, 31, 32, 33, 34]
+     };
+
+
+     var currentActiveSchema = null;
+
+
+     function goHome() { google.script.run.withSuccessHandler(url => window.open(url, "_top")).getScriptUrl(); }
+     window.onload = function() { loadMasterData(); };
+
+
+     function loadMasterData() { google.script.run.withSuccessHandler(initialRender).getMasterData(); }
+
+
+     // manage.html <script>
+
+
+function refreshTable() {
+ // 1. Clear the table and show a spinner immediately
+ var tbody = document.getElementById("tableBody");
+ tbody.innerHTML = `<tr><td colspan="100%" class="text-center p-5">
+                      <div class="text-secondary">
+                        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>
+                        Refreshing Data...
+                      </div>
+                    </td></tr>`;
+  // 2. Reset search filters if you want (Optional)
+ // document.querySelectorAll('.filter-input').forEach(el => el.value = "");
+
+
+ // 3. Call the actual data fetch
+ loadMasterData();
+}
+    
+     function initialRender(data) {
+       if (!data || data.length === 0) { document.getElementById("tableBody").innerHTML = `<tr><td colspan="100%" class="text-center">No Data Found</td></tr>`; return; }
+       globalHeaders = data[0].slice(0, 19); allData = [];
+       for (var i = 1; i < data.length; i++) {
+         var row = data[i]; if (!row[1]) continue;
+         allData.push({ values: row.slice(0, 19), originalRowIndex: i + 1 });
+       }
+       filteredData = allData; renderHeader(globalHeaders); renderTableBody();
+     }
+
+
+function renderHeader(headers) {
+       var hRow = document.getElementById("headerRow"); var fRow = document.getElementById("filterRow");
+       hRow.innerHTML = `<th style="width: 50px;">No</th>`; fRow.innerHTML = `<th></th>`;
+       for (var h = 1; h < headers.length; h++) {
+         
+         // --- REVISED LINE BELOW ---
+         // Skip Column Q (16) and Column R/Checklist (17)
+         if (h === 16 || h === 17) continue; 
+         // --------------------------
+
+         hRow.innerHTML += `<th>${headers[h]}</th>`;
+         fRow.innerHTML += `<th><input type="text" class="filter-input" placeholder="Search..." onkeyup="filterData()"></th>`;
+       }
+       hRow.innerHTML += `<th style="width: 150px;" class="text-center">Action</th>`; fRow.innerHTML += `<th></th>`;
+     }
+
+
+     function renderTableBody() {
+       var tbody = document.getElementById("tableBody"); tbody.innerHTML = "";
+       if (filteredData.length === 0) { tbody.innerHTML = `<tr><td colspan="100%">No Data</td></tr>`; return; }
+       var start = (currentPage - 1) * rowsPerPage; var end = Math.min(start + rowsPerPage, filteredData.length);
+       var pageData = filteredData.slice(start, end);
+
+
+       var jenisIndex = -1;
+       for(var i=0; i<globalHeaders.length; i++) { if(globalHeaders[i].toLowerCase().includes("jenis pengelolaan")) { jenisIndex = i; break; } }
+
+
+       pageData.forEach((rowObj, index) => {
+         var tr = document.createElement("tr");
+         var displayNum = start + index + 1;
+         var sheetRowNumber = rowObj.originalRowIndex;
+         tr.innerHTML += `<td class="text-center fw-bold">${displayNum}</td>`;
+        
+         rowObj.values.forEach((val, idx) => {
+            if(idx===0) return;
+            if (idx === 16 || idx === 17) return;
+            var headerName = globalHeaders[idx].toLowerCase();
+            var display = val;
+            var cellClass = "";
+            if (headerName.includes("nilai") && val !== "") {
+               display = "Rp " + Number(val).toLocaleString('id-ID'); cellClass = "cell-nowrap";
+            }
+            else if (headerName.includes("link") || headerName.includes("dokumen")) {
+               display = `<a href="${val}" target="_blank" class="text-decoration-none text-reset"><div class="cell-truncate" title="${val}">${val}</div></a>`;
+            }
+            tr.innerHTML += `<td class="data-cell ${cellClass}">${display}</td>`;
+         });
+        
+         var jenisVal = String(rowObj.values[jenisIndex]).trim();
+         var showTransfer = false;
+         var validTypes = ["PSP", "Alih Status", "Sewa", "KSP", "Pinjam Pakai", "Penjualan", "Hibah", "Penghapusan", "Pemusnahan"];
+         if(jenisIndex !== -1 && validTypes.some(t => jenisVal.includes(t))) showTransfer = true;
+        
+         // Existing Transfer Button Logic
+         var transferBtn = showTransfer ? `<button class="btn btn-info btn-sm text-white ms-1" onclick="determineAndOpenModal('${encodeURIComponent(JSON.stringify(rowObj.values))}')" title="Transfer"><i class="fas fa-share-square"></i></button>` : "";
+        
+         // --- NEW: CHECKLIST BUTTON LOGIC ---
+         // Access Column 17 (Index 17). Adjust index if your array structure changes.
+         var checklistJson = rowObj.values[17];
+         var checklistBtn = "";
+
+
+         if (checklistJson && checklistJson.toString().trim().startsWith("{")) {
+           // Added: , ${sheetRowNumber}
+checklistBtn = `<button class="btn btn-secondary btn-sm ms-1" onclick="viewChecklist('${encodeURIComponent(checklistJson)}', ${sheetRowNumber})" title="Edit Checklist"><i class="fas fa-clipboard-list"></i></button>`;
+         }
+         // -----------------------------------
+
+
+         // 2. RENDER ROW
+   tr.innerHTML += `<td class="text-center">
+       <div class="btn-group btn-group-action" role="group">
+         <button class="btn btn-warning btn-sm btn-edit" onclick="editRow(this)" title="Edit"><i class="fas fa-pen"></i></button>
+         <button class="btn btn-danger btn-sm btn-delete" onclick="deleteRow(this, ${sheetRowNumber})" title="Delete"><i class="fas fa-trash"></i></button>
+         ${transferBtn}
+         ${checklistBtn} </div>
+             <div class="btn-group d-none btn-group-save" role="group">
+               <button class="btn btn-success btn-sm" onclick="saveRow(this, ${sheetRowNumber})" title="Save"><i class="fas fa-check"></i></button>
+               <button class="btn btn-secondary btn-sm" onclick="cancelEdit()" title="Cancel"><i class="fas fa-times"></i></button>
+             </div>
+           </td>`;
+         tbody.appendChild(tr);
+       });
+       updatePaginationControls();
+     }
+
+
+     function determineAndOpenModal(encodedData) {
+       var rowValues = JSON.parse(decodeURIComponent(encodedData));
+       var jenis = rowValues[4] ? String(rowValues[4]).trim() : "";
+      
+       if (["Sewa", "KSP", "Pinjam Pakai"].some(t => jenis.includes(t))) {
+         currentActiveSchema = SCHEMA_SEWA;
+       }
+       else if (["Penjualan", "Hibah", "Penghapusan", "Pemusnahan"].some(t => jenis.includes(t))) {
+         currentActiveSchema = SCHEMA_PINDAHHAPUS;
+       }
+       else {
+         currentActiveSchema = SCHEMA_PSP;
+       }
+       generateModalInputs(currentActiveSchema);
+       openTransferModal(rowValues, currentActiveSchema);
+     }
+
+
+     function generateModalInputs(schema) {
+       var container = document.getElementById("modalFormContainer");
+       var html = "";
+       var labels = schema.labels;
+       var assessmentFields = schema.assessmentFields || [];
+
+
+       for (var i = 0; i < labels.length; i++) {
+         var label = labels[i];
+         var idx = i + 1;
+         var inputHtml = "";
+
+
+         // Toggles
+         if (schema.type === "SEWA" && idx === 23) {
+           html += `<div class="col-12 mt-3 mb-2"><div class="card bg-light border-warning"><div class="card-body py-2 px-3 d-flex align-items-center justify-content-between"><span class="small fw-bold text-dark"><i class="fas fa-clipboard-check text-warning me-2"></i>Hasil Penilaian</span><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="toggleAssessment" onchange="toggleAssessmentInputs()"><label class="form-check-label small" for="toggleAssessment">Data Penilaian Tersedia?</label></div></div></div></div>`;
+         }
+         if (schema.type === "PINDAHHAPUS" && idx === 30) {
+           html += `<div class="col-12 mt-3 mb-2"><div class="card bg-light border-warning"><div class="card-body py-2 px-3 d-flex align-items-center justify-content-between"><span class="small fw-bold text-dark"><i class="fas fa-clipboard-check text-warning me-2"></i>Hasil Penilaian</span><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="toggleAssessment" onchange="toggleAssessmentInputs()"><label class="form-check-label small" for="toggleAssessment">Data Penilaian Tersedia?</label></div></div></div></div>`;
+         }
+         if (schema.type === "PINDAHHAPUS" && idx === 35) {
+            html += `<div class="col-12 mt-3 mb-2 d-flex justify-content-end"><div class="form-check form-switch border p-2 rounded bg-white"><input class="form-check-input" type="checkbox" id="toggleLimitCopy" onchange="runSyncLimit()"><label class="form-check-label small fw-bold" for="toggleLimitCopy">Nilai usulan sudah memadai (Salin)</label></div></div>`;
+         }
+
+
+         var isDisabled = assessmentFields.includes(idx) ? "disabled" : "";
+         var bgClass = assessmentFields.includes(idx) ? "bg-light" : "";
+
+
+         // Inputs
+         if (schema.type === "PINDAHHAPUS" && idx === 18) {
+            var reasons = ["hilang", "dalam kondisi rusak berat", "tidak sesuai dengan perkembangan teknologi", "tidak sesuai dengan kebutuhan organisasi", "tidak produktif", "keadaan kahar (force majeure)", "anggaran untuk bangunan pengganti sudah disediakan dalam dokumen penganggaran", "bangunan berdiri di atas tanah pihak lain", "aset tetap renovasi pada BMN milik pihak lain", "dalam kondisi membahayakan lingkungan sekitar"];
+            inputHtml = `<select class="form-select form-select-sm modal-input" name="col${idx}" id="db_col_${idx}"><option value="">- Pilih Sebab -</option>`;
+            reasons.forEach(r => { inputHtml += `<option value="${r}">${r}</option>`; });
+            inputHtml += `</select>`;
+         }
+         else if (schema.textareas.includes(idx)) {
+            inputHtml = `<textarea class="form-control form-control-sm modal-input ${bgClass}" name="col${idx}" id="db_col_${idx}" rows="2" ${isDisabled}></textarea>`;
+         }
+         else if (schema.readonly.includes(idx)) {
+            inputHtml = `<input type="text" class="form-control form-control-sm modal-input bg-light" name="col${idx}" id="db_col_${idx}" readonly ${isDisabled}>`;
+         }
+         else if (schema.dates.includes(idx)) {
+            inputHtml = `<input type="date" class="form-control form-control-sm modal-input ${bgClass}" name="col${idx}" id="db_col_${idx}" ${isDisabled}>`;
+         }
+         else {
+            var trigger = schema.terbilangTriggers.find(t => t.src === idx);
+            if(trigger) {
+              inputHtml = `<input type="text" class="form-control form-control-sm modal-input ${bgClass}" name="col${idx}" id="db_col_${idx}" onkeyup="handleTerbilang(this, ${trigger.dest})" ${isDisabled}>`;
+            }
+           // --- FIX: Using Input Group to separate the number from the unit ---
+else if (idx === 19 && schema.type === "SEWA") {
+ inputHtml = `
+   <div class="input-group input-group-sm">
+     <input type="number"
+            class="form-control modal-input"
+            name="col${idx}"
+            id="db_col_${idx}"
+            placeholder="0"
+            step="0.01">
+     <span class="input-group-text">m²</span>
+   </div>`;
+}
+            // ------------------------------------
+            else if ((label === "K/L" || idx === 2) && schema.type === "PSP") {
+              inputHtml = `<input type="text" class="form-control form-control-sm modal-input" name="col${idx}" id="db_col_${idx}" oninput="syncUpperKL()">`;
+            } else {
+              inputHtml = `<input type="text" class="form-control form-control-sm modal-input ${bgClass}" name="col${idx}" id="db_col_${idx}" ${isDisabled}>`;
+            }
+         }
+
+
+         html += `<div class="col-md-4"><label class="form-label-sm text-truncate w-100" title="${label}">${idx}. ${label}</label>${inputHtml}</div>`;
+       }
+       container.innerHTML = html;
+       document.querySelector(".modal-title").innerHTML = `<i class="fas fa-share-square"></i> Transfer Data (${schema.type})`;
+     }
+
+
+   function openTransferModal(rowValues, schema) {
+       document.getElementById("transferForm").reset();
+       document.getElementById("checkSamePemohon").checked = false;
+       var toggleAss = document.getElementById("toggleAssessment");
+       if(toggleAss) { toggleAss.checked = false; toggleAssessmentInputs(); }
+      
+       // --- IMPORTANT: Fill internal data FIRST so fields aren't empty while loading ---
+       fillFormFromInternal(rowValues, schema);
+
+
+       var modalEl = document.getElementById('transferModal');
+       var myModal = new bootstrap.Modal(modalEl);
+       myModal.show();
+      
+       document.getElementById("modalLoadingOverlay").style.display = "flex";
+       var tiketSiman = rowValues[schema.tiketIndex];
+      
+       google.script.run
+         .withSuccessHandler(function(existingData) {
+            document.getElementById("modalLoadingOverlay").style.display = "none";
+            if (existingData) {
+              fillFormFromExternal(existingData, schema);
+              document.getElementById("statusAlert").innerHTML = `<i class="fas fa-edit"></i> <strong>Edit Mode:</strong> Data retrieved from External Database.`;
+              document.getElementById("statusAlert").className = "alert alert-warning py-1 px-2 m-0 small";
+            } else {
+              document.getElementById("statusAlert").innerHTML = `<i class="fas fa-info-circle"></i> Data filled from Master Sheet (New Entry).`;
+              document.getElementById("statusAlert").className = "alert alert-info py-1 px-2 m-0 small";
+            }
+         })
+         .withFailureHandler(function(error) {
+            document.getElementById("modalLoadingOverlay").style.display = "none";
+         })
+         .fetchExternalData(tiketSiman, schema.type);
+     }
+
+
+   function fillFormFromExternal(data, schema) {
+       var totalFields = schema.labels.length;
+       for (var i = 1; i <= totalFields; i++) {
+          if (i < data.length) {
+            var el = document.getElementById("db_col_" + i);
+            if (el) {
+               if (data[i] !== "" && data[i] !== null) {
+                  el.value = data[i];
+               }
+            }
+          }
+       }
+      
+       // Force Toggles check
+       var toggleAss = document.getElementById("toggleAssessment");
+       if (toggleAss && schema.assessmentFields && schema.assessmentFields.length > 0) {
+          var firstField = document.getElementById("db_col_" + schema.assessmentFields[0]);
+          if (firstField && firstField.value !== "") {
+             toggleAss.checked = true;
+             toggleAssessmentInputs();
+          }
+       }
+     }
+
+
+     function fillFormFromInternal(rowValues, schema) {
+       for (var srcIndex in schema.mapping) {
+         setVal(schema.mapping[srcIndex], rowValues[srcIndex] || "");
+       }
+      
+       schema.terbilangTriggers.forEach(t => {
+         var el = document.getElementById("db_col_" + t.src);
+         if(el && el.value) { formatRupiah(el); handleTerbilang(el, t.dest); }
+       });
+       if(schema.type === "PSP") { setValIfEmpty(20, "Menteri Keuangan"); }
+       else if (schema.type === "SEWA") {
+         setValIfEmpty(25, "Penilai Pemerintah KPKNL Denpasar");
+         setValIfEmpty(26, "Laporan Penilaian Penilai Pemerintah KPKNL Denpasar");
+       }
+       var kodeSatker = rowValues[2];
+       if (kodeSatker) {
+         setVal(2, "Loading..."); setVal(3, "Loading..."); setVal(5, "Loading..."); setVal(6, "Loading...");
+        google.script.run.withSuccessHandler(function(d) {
+           if (d) {
+             // The || "" prevents "undefined" from appearing in the text box
+             setVal(2, d.kl || "");
+             setVal(3, d.pimpinanKl || "");
+             setVal(5, d.pimpinanSatker || "");
+             setVal(6, d.alamat || "");
+             if(schema.type==="PSP") syncUpperKL();
+           } else {
+             setVal(2, ""); setVal(3, ""); setVal(5, ""); setVal(6, "");
+           }
+         }).getSatkerDetails(kodeSatker);
+       }
+     }
+
+
+     function handleTerbilang(el, targetId) {
+       formatRupiah(el);
+       var rawVal = el.value.replace(/[^0-9]/g, "");
+       var targetEl = document.getElementById("db_col_" + targetId);
+       if(!targetEl) return;
+       if (!rawVal || rawVal == "0") { targetEl.value = ""; return; }
+       targetEl.value = terbilang(rawVal) + " Rupiah";
+       runSyncLimit();
+     }
+
+
+     function runSyncLimit() {
+       var toggle = document.getElementById("toggleLimitCopy");
+       if (!toggle) return;
+       var srcNum = document.getElementById("db_col_21");
+       var srcText = document.getElementById("db_col_22");
+       var destNum = document.getElementById("db_col_35");
+       var destText = document.getElementById("db_col_36");
+       if (toggle.checked) {
+          if(srcNum && destNum) destNum.value = srcNum.value;
+          if(srcText && destText) destText.value = srcText.value;
+       } else {
+          if(destNum) destNum.value = "";
+          if(destText) destText.value = "";
+       }
+     }
+
+
+     function syncUpperKL() {
+       var klVal = document.getElementById("db_col_2").value;
+       if(currentActiveSchema.type === "PSP") {
+         var upper = document.getElementById("db_col_20");
+         if(upper) upper.value = klVal.toUpperCase();
+       }
+     }
+
+
+     function togglePemohon() {
+       var isChecked = document.getElementById("checkSamePemohon").checked;
+       var map = currentActiveSchema.toggleMap;
+       if (isChecked) {
+          for(var src in map) {
+            var dest = map[src];
+            var srcEl = document.getElementById("db_col_" + src);
+            var destEl = document.getElementById("db_col_" + dest);
+            if(srcEl && destEl) destEl.value = srcEl.value;
+          }
+       } else {
+          for(var src in map) {
+            var dest = map[src];
+            var destEl = document.getElementById("db_col_" + dest);
+            if(destEl) destEl.value = "";
+          }
+       }
+     }
+
+
+     function toggleAssessmentInputs() {
+       if (!currentActiveSchema || !currentActiveSchema.assessmentFields) return;
+       var isChecked = document.getElementById("toggleAssessment").checked;
+       currentActiveSchema.assessmentFields.forEach(idx => {
+         var el = document.getElementById("db_col_" + idx);
+         if (el) {
+           if (isChecked) { el.removeAttribute("disabled"); el.classList.remove("bg-light"); }
+           else { el.setAttribute("disabled", "true"); el.classList.add("bg-light"); }
+         }
+       });
+     }
+
+
+   function submitTransfer() {
+ var formData = {};
+ var monthsIndo = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+ var limit = currentActiveSchema.labels.length;
+
+
+ for (var i = 1; i <= limit; i++) {
+   var el = document.getElementById("db_col_" + i);
+   if (!el) continue;
+  
+   var val = el.value;
+
+
+     // --- FIX: SAFE CLEANING LOGIC ---
+         var isCurrency = currentActiveSchema.terbilangTriggers.some(t => t.src === i);
+        
+         if (isCurrency && val) {
+           // Strip everything except numbers for currency
+           val = val.replace(/[^0-9]/g, "");
+         }
+         else if (i === 19 && currentActiveSchema.type === "SEWA") {
+           // Field 19 is now type="number". No cleaning needed, but we ensure it's a valid string.
+           val = val ? val.toString() : "";
+         }
+
+
+   // --- END CLEANING LOGIC ---
+
+
+   // Date formatting logic
+   if (el.type === "date" && val) {
+     var d = new Date(val);
+     if (!isNaN(d)) val = `${d.getDate()} ${monthsIndo[d.getMonth()]} ${d.getFullYear()}`;
+   }
+
+
+   formData['col' + i] = val;
+ }
+
+
+ var btn = document.querySelector("#transferModal .btn-primary");
+ var originalText = btn.innerHTML;
+ btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+ btn.disabled = true;
+  var type = currentActiveSchema.type;
+  google.script.run.withSuccessHandler(function(res) {
+   btn.innerHTML = originalText;
+   btn.disabled = false;
+   if (res.startsWith("Success")) {
+     alert(res);
+     bootstrap.Modal.getInstance(document.getElementById('transferModal')).hide();
+   } else {
+     alert("Gagal: " + res);
+   }
+ }).saveToExternalDatabase(formData, limit, type);
+}
+
+
+     // --- UTILS ---
+     function setVal(idx, val) { var el = document.getElementById("db_col_" + idx); if(el) el.value = val; }
+     function setValIfEmpty(idx, val) { var el = document.getElementById("db_col_" + idx); if(el && el.value === "") el.value = val; }
+     function formatRupiah(element) { var prefix = "Rp "; var value = element.value.replace(/\D/g, ""); var string_value = value.toString(); var sisa = string_value.length % 3; var rupiah = string_value.substr(0, sisa); var ribuan = string_value.substr(sisa).match(/\d{3}/gi); if (ribuan) { var separator = sisa ? '.' : ''; rupiah += separator + ribuan.join('.'); } element.value = prefix + rupiah; }
+     function terbilang(bilangan) {
+       bilangan = String(bilangan);
+       var angka = new Array('0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0');
+       var kata = new Array('','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan');
+       var tingkat = new Array('','Ribu','Juta','Milyar','Triliun');
+       var panjang_bilangan = bilangan.length; var kalimat = ""; var subkalimat = ""; var kata1 = ""; var kata2 = ""; var kata3 = "";
+       if (panjang_bilangan > 15) { return "Di luar batas"; }
+       for (var i = 1; i <= panjang_bilangan; i++) { angka[i] = bilangan.substr(-(i),1); }
+       var i = 1; var j = 0;
+       while (i <= panjang_bilangan) {
+          subkalimat = ""; kata1 = ""; kata2 = ""; kata3 = "";
+          if (angka[i+2] != "0") {
+             if (angka[i+2] == "1") { kata1 = "Seratus"; } else { kata1 = kata[angka[i+2]] + " Ratus"; }
+          }
+          if (angka[i+1] != "0") {
+             if (angka[i+1] == "1") {
+                if (angka[i] == "0") { kata2 = "Sepuluh"; } else if (angka[i] == "1") { kata2 = "Sebelas"; } else { kata2 = kata[angka[i]] + " Belas"; }
+             } else { kata2 = kata[angka[i+1]] + " Puluh"; }
+          }
+          if (angka[i] != "0") { if (angka[i+1] != "1") { kata3 = kata[angka[i]]; } }
+          if ((i == 1) && (j == 1) && (angka[i] == "1") && (angka[i+1] == "0") && (angka[i+2] == "0")) { subkalimat = "Seribu"; }
+          else { if ((angka[i] != "0") || (angka[i+1] != "0") || (angka[i+2] != "0")) { subkalimat = kata1+" "+kata2+" "+kata3+" "+tingkat[j]+" "; } }
+          kalimat = subkalimat + kalimat; i = i + 3; j = j + 1;
+   }
+   kalimat = kalimat.replace(/  +/g, ' '); return kalimat.trim();
+ }
+
+
+     function editRow(btn) {
+       if (currentRowBeingEdited) cancelEdit();
+       var tr = btn.closest("tr");
+       currentRowBeingEdited = tr;
+       originalHTML = tr.innerHTML;
+      
+       tr.querySelector(".btn-group-action").classList.add("d-none");
+       tr.querySelector(".btn-group-save").classList.remove("d-none");
+      
+       var cells = tr.querySelectorAll(".data-cell");
+      
+       cells.forEach((td, index) => {
+         // INDEX MAPPING EXPLANATION:
+         // Global Data Index 0 = Column A (No) -> Skipped in this loop.
+         // Loop Index 0 = Data Index 1 (PIC)
+         // Loop Index 8 = Data Index 9 (No Tiket SIMAN) -> READ ONLY
+         // Loop Index 9 = Data Index 10 (No KMK) -> START EDITING
+        
+         var isEditable = false;
+        
+         // Only allow editing from "No KMK" (Index 9) onwards
+         if (index >= 9) {
+            isEditable = true;
+         }
+
+
+         // --- 1. READ ONLY COLUMNS ---
+         if (!isEditable) {
+           td.classList.add("text-muted", "bg-light"); // Add visual cue that it's locked
+           return;
+         }
+
+
+         // --- 2. EDITABLE COLUMNS ---
+         var headerName = globalHeaders[index + 1].toLowerCase();
+         var text = td.innerText;
+         if(td.querySelector('.cell-truncate')) {
+            text = td.querySelector('.cell-truncate').getAttribute('title') || td.innerText;
+         }
+        
+         if (headerName.includes("tanggal")) {
+            var isoDate = "";
+            if (text.includes("/")) { var parts = text.split("/"); isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`; }
+            else if (text.trim() !== "") {
+               var d = new Date(text);
+               if(!isNaN(d)) isoDate = d.toISOString().split('T')[0];
+            }
+            td.innerHTML = `<input type="date" class="form-control edit-input" value="${isoDate}" data-col-index="${index}">`;
+         }
+         else if (headerName.includes("nilai")) {
+            var numVal = text.replace(/[^0-9]/g, '');
+            td.innerHTML = `<input type="text" class="form-control edit-input" value="${numVal}" onkeyup="formatRupiah(this)" data-col-index="${index}">`;
+         }
+         else {
+            var safeText = text.replace(/"/g, "&quot;");
+            td.innerHTML = `<input type="text" class="form-control edit-input" value="${safeText}" data-col-index="${index}">`;
+         }
+       });
+     }
+    
+     function saveRow(btn, rowNum) {
+       var tr = btn.closest("tr");
+      
+       // 1. Get the original data object for this row
+       var originalRowObj = allData.find(item => item.originalRowIndex === rowNum);
+       if (!originalRowObj) { alert("Error: Could not find original data."); return; }
+
+
+       // 2. Create a copy of the original values (Cloning the array)
+       // This ensures Read-Only columns (like PIC, Satker) stay exactly as they were
+       var newData = [...originalRowObj.values];
+
+
+       // 3. Get all inputs currently visible in the row
+       var inputs = tr.querySelectorAll(".edit-input");
+      
+       // 4. Update ONLY the modified columns in our newData array
+       inputs.forEach((input) => {
+          var colIndex = parseInt(input.getAttribute("data-col-index")); // 0-based index from editRow
+          var val = input.value;
+         
+          // Clean currency formatting if needed
+          var headerName = globalHeaders[colIndex + 1].toLowerCase();
+          if (headerName.includes("nilai")) {
+            val = val.replace(/[^0-9]/g, "");
+          }
+         
+          // Update the array at the correct position
+          // Note: rowObj.values[0] is Column A (No/ID).
+          // Our data-col-index aligns with rowObj.values because we loop rowObj.values in renderTableBody
+          newData[colIndex + 1] = val; // +1 shift because values[0] is often ID/No, but verify your structure.
+         
+          // actually, looking at your initialRender:
+          // allData.push({ values: row.slice(0, 16) ... })
+          // renderTableBody loops rowObj.values, skipping idx===0.
+          // editRow loops cells. cell 0 corresponds to values[1].
+          // So if editRow index is 0 -> it is values[1].
+         
+          newData[colIndex + 1] = val;
+       });
+
+
+       // 5. Send to backend
+       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+       google.script.run.withSuccessHandler(function(res) {
+          alert(res);
+          loadMasterData(); // Refresh table to show clean text
+       }).updateRow(rowNum, newData);
+     }
+     function cancelEdit() { if(currentRowBeingEdited) { currentRowBeingEdited.innerHTML = originalHTML; currentRowBeingEdited = null; } }
+     function deleteRow(btn, rowNum) { if(confirm("Are you sure?")) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; google.script.run.withSuccessHandler(function(res) { alert(res); loadMasterData(); }).deleteRow(rowNum); } }
+     function updatePaginationControls() { var totalRows = filteredData.length; var totalPages = Math.ceil(totalRows / rowsPerPage); var paginationUl = document.getElementById("paginationControls"); var pageInfo = document.getElementById("pageInfo"); var start = (currentPage - 1) * rowsPerPage + 1; var end = Math.min(currentPage * rowsPerPage, totalRows); if(totalRows === 0) { start = 0; end = 0; } pageInfo.innerText = `Showing ${start} to ${end} of ${totalRows} entries`; var html = ""; var prevDisabled = currentPage === 1 ? "disabled" : ""; html += `<li class="page-item ${prevDisabled}"><a class="page-link" onclick="changePage(${currentPage - 1})">Previous</a></li>`; var startPage = Math.max(1, currentPage - 2); var endPage = Math.min(totalPages, currentPage + 2); if(startPage > 1) { html += `<li class="page-item"><a class="page-link" onclick="changePage(1)">1</a></li>`; if(startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`; } for (var p = startPage; p <= endPage; p++) { var active = p === currentPage ? "active" : ""; html += `<li class="page-item ${active}"><a class="page-link" onclick="changePage(${p})">${p}</a></li>`; } if(endPage < totalPages) { if(endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`; html += `<li class="page-item"><a class="page-link" onclick="changePage(${totalPages})">${totalPages}</a></li>`; } var nextDisabled = currentPage === totalPages || totalPages === 0 ? "disabled" : ""; html += `<li class="page-item ${nextDisabled}"><a class="page-link" onclick="changePage(${currentPage + 1})">Next</a></li>`; paginationUl.innerHTML = html; }
+     function changePage(pageNum) { var totalPages = Math.ceil(filteredData.length / rowsPerPage); if (pageNum < 1 || pageNum > totalPages) return; currentPage = pageNum; cancelEdit(); renderTableBody(); }
+     function filterData() { var inputs = document.getElementsByClassName("filter-input"); var filters = []; for(var i=0; i<inputs.length; i++) filters.push(inputs[i].value.toUpperCase()); filteredData = allData.filter(function(rowObj) { for (var c = 1; c < rowObj.values.length; c++) { var filterText = filters[c-1]; if (filterText) { var cellData = String(rowObj.values[c]).toUpperCase(); if (cellData.indexOf(filterText) === -1) return false; } } return true; }); currentPage = 1; renderTableBody(); }
+
+
+   function formatSquareMeter(element) {
+ // 1. Get current value and remove the ' m2' suffix specifically first
+ var val = element.value.toLowerCase().replace(" m2", "");
+  // 2. Extract only digits from what remains
+ var digits = val.replace(/\D/g, "");
+
+
+ // 3. If empty, stay empty (allows user to delete everything)
+ if (digits === "" || digits === "0") {
+   element.value = "";
+   return;
+ }
+
+
+ // 4. Format with thousands separator
+ var formatted = Number(digits).toLocaleString('id-ID');
+ var finalValue = formatted + " m2";
+
+
+ // 5. Apply to element
+ element.value = finalValue;
+
+
+ // 6. Fix cursor position so it stays behind the numbers
+ var pos = finalValue.length - 3;
+ element.setSelectionRange(pos, pos);
+}
+
+
+// manage.html <script>
+
+
+// 1. OPEN MODAL & RENDER EDITABLE LIST
+// manage.html
+
+
+function viewChecklist(encodedJson, rowIndex) {
+ try {
+   var data = JSON.parse(decodeURIComponent(encodedJson));
+  
+   document.getElementById("checklistRowIndex").value = rowIndex;
+   var listContainer = document.getElementById("previewList");
+   listContainer.innerHTML = "";
+  
+   if (data.items && data.items.length > 0) {
+     data.items.forEach(function(item) {
+       // HANDLE COMPATIBILITY:
+       // Old Data = "String"
+       // New Data = {name: "String", checked: boolean}
+      
+       var name = "";
+       var isChecked = true; // Default to true for old data
+      
+       if (typeof item === 'object' && item !== null) {
+         name = item.name;
+         isChecked = item.checked;
+       } else {
+         name = String(item);
+       }
+      
+       addModalChecklistItem(name, isChecked);
+     });
+   } else {
+     addModalChecklistItem("", false);
+   }
+  
+   document.getElementById("previewNotes").value = data.notes ? data.notes : "";
+   var myModal = new bootstrap.Modal(document.getElementById('checklistPreviewModal'));
+   myModal.show();
+  
+ } catch (e) {
+   alert("Gagal membaca data checklist: " + e.message);
+ }
+}
+
+
+// 2. HELPER: ADD ITEM (Identical style to Form.html)
+function addModalChecklistItem(textValue = "", isChecked = false) {
+ var ul = document.getElementById("previewList");
+ var li = document.createElement("li");
+  li.className = "list-group-item d-flex align-items-center border-0 px-0 mb-1";
+  var checkedAttr = isChecked ? "checked" : "";
+  li.innerHTML = `
+     <div class="form-check me-2">
+       <input class="form-check-input modal-checklist-checkbox" type="checkbox" ${checkedAttr} style="cursor:pointer; transform: scale(1.2);">
+     </div>
+    
+     <input type="text" class="form-control form-control-sm border-0 border-bottom modal-checklist-text flex-grow-1"
+            value="${textValue}" placeholder="Nama Dokumen...">
+    
+     <button type="button" class="btn btn-link text-danger ms-2 p-0" onclick="deleteModalItem(this)" title="Hapus Baris">
+         <i class="fas fa-times"></i>
+     </button>
+ `;
+ ul.appendChild(li);
+}
+
+
+// 3. HELPER: DELETE ITEM
+function deleteModalItem(btn) {
+ btn.closest("li").remove();
+}
+
+
+// 4. SAVE CHANGES
+function saveChecklistChanges() {
+ var rowIndex = document.getElementById("checklistRowIndex").value;
+ var checkboxes = document.querySelectorAll(".modal-checklist-checkbox");
+ var inputs = document.querySelectorAll(".modal-checklist-text");
+ var notes = document.getElementById("previewNotes").value;
+  var itemsArray = [];
+  // Save ALL items + their Checked Status
+ for (var i = 0; i < inputs.length; i++) {
+   var val = inputs[i].value.trim();
+   if (val !== "") {
+     itemsArray.push({
+       name: val,
+       checked: checkboxes[i].checked // Capture the checkbox state
+     });
+   }
+ }
+  var newData = {
+   items: itemsArray,
+   notes: notes
+ };
+  var jsonString = JSON.stringify(newData);
+  // UI Feedback
+ var btn = document.querySelector("#checklistPreviewModal .btn-success");
+ var originalText = btn.innerHTML;
+ btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+ btn.disabled = true;
+  google.script.run.withSuccessHandler(function(res) {
+   if (res === "Success") {
+     alert("Checklist berhasil diperbarui! Tunggu beberapa saat untuk melihat perubahan");
+     bootstrap.Modal.getInstance(document.getElementById('checklistPreviewModal')).hide();
+     loadMasterData();
+   } else {
+     alert(res);
+   }
+   btn.innerHTML = originalText;
+   btn.disabled = false;
+ }).updateChecklistData(rowIndex, jsonString);
+}
+function copyChecklistToClipboard() {
+  // --- 1. GET THE SOURCE DATA FROM MEMORY ---
+  // We use the hidden input "checklistRowIndex" to find the correct data row in 'allData'
+  var rowIndexInput = document.getElementById("checklistRowIndex");
+  if (!rowIndexInput || !rowIndexInput.value) {
+    alert("Error: Index baris tidak ditemukan.");
+    return;
+  }
+
+  var sheetRowNumber = parseInt(rowIndexInput.value);
+  var rowObj = allData.find(item => item.originalRowIndex === sheetRowNumber);
+
+  if (!rowObj) {
+    alert("Error: Data tidak ditemukan di memori.");
+    return;
+  }
+
+  // --- 2. MAP COLUMNS TO INDICES ---
+  // Based on "allData.push({ values: row.slice(0, 19)... })"
+  // Arrays are 0-indexed: Col A=0, B=1, F=5, H=7, M=12
+  
+  var val = rowObj.values;
+  var kodeSatker = val[2] || "-"; // Col C
+  var jenis      = val[4] || "-"; // Col E
+  var tiket      = val[9] || "-"; // Col J
+  
+  // Optional: Satker Name (Col D = Index 3)
+  var satkerName = val[3] || "";
+
+  // --- 3. BUILD HEADER TEXT ---
+  var clipboardText = `*CHECKLIST PERSYARATAN DOKUMEN*\n`;
+  clipboardText += `-----------------------------------\n`;
+  clipboardText += `*Jenis* : ${jenis}\n`;
+  clipboardText += `*No. Tiket SIMAN* : ${tiket}\n`;
+  clipboardText += `*Satker* : ${kodeSatker}\n`;
+  if (satkerName) clipboardText += `          ${satkerName}\n`;
+  clipboardText += `-----------------------------------\n`;
+
+  // --- 4. GATHER CHECKLIST ITEMS (FROM <LI> ELEMENTS) ---
+  var listContainer = document.getElementById("previewList");
+  var listItems = listContainer.querySelectorAll("li");
+
+  if (listItems.length === 0) {
+      clipboardText += "(Tidak ada item checklist)\n";
+  }
+
+  listItems.forEach(function(li) {
+    // 1. Find the checkbox
+    var checkbox = li.querySelector(".modal-checklist-checkbox");
+    var isChecked = checkbox ? checkbox.checked : false;
+    var status = isChecked ? "[v]" : "[ ]";
+
+    // 2. Find the text input
+    var textInput = li.querySelector(".modal-checklist-text");
+    var labelText = textInput ? textInput.value.trim() : "";
+
+    if (labelText === "") labelText = "(Item Kosong)";
+
+    clipboardText += `${status} ${labelText}\n`;
+  });
+
+  // --- 5. APPEND NOTES (OPTIONAL) ---
+  var notes = document.getElementById("previewNotes").value;
+  if(notes.trim() !== "") {
+      clipboardText += `-----------------------------------\n`;
+      clipboardText += `*Catatan*: ${notes}\n`;
+  }
+
+  // --- 6. COPY TO CLIPBOARD ---
+  navigator.clipboard.writeText(clipboardText).then(function() {
+    var btn = document.querySelector("button[onclick='copyChecklistToClipboard()']");
+    if(btn) {
+        var originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Tersalin!';
+        btn.classList.remove("btn-outline-secondary");
+        btn.classList.add("btn-success");
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+          btn.classList.remove("btn-success");
+          btn.classList.add("btn-outline-secondary");
+        }, 1500);
+    }
+  }).catch(function(err) {
+    console.error('Copy failed:', err);
+    alert("Gagal menyalin text.");
+  });
+}
+
+   </script>
+ </body>
+</html>
+

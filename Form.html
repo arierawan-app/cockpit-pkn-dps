@@ -1,0 +1,1037 @@
+u<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+      /* --- UPDATED: ELEGANT GREEN BACKGROUND --- */
+      body {
+        /* Soft Green Gradient */
+        background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        background-attachment: fixed; 
+        font-family: 'Roboto', sans-serif;
+        padding-bottom: 50px;
+        min-height: 100vh;
+      }
+
+      .form-container { max-width: 640px; margin: 20px auto; }
+
+      /* --- CARD STYLING --- */
+      .title-card {
+        background: white; 
+        border-radius: 8px; 
+        border-top: 10px solid #2e7d32; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        padding: 24px; 
+        margin-bottom: 15px;
+      }
+
+      .form-title { font-size: 24pt; font-weight: 400; margin-bottom: 10px; color: #1b5e20; }
+      .form-desc { font-size: 11pt; color: #5f6368; }
+
+      .question-card {
+        background: white; 
+        border-radius: 8px; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        padding: 24px; 
+        margin-bottom: 15px; 
+        border-left: 6px solid transparent;
+        transition: all 0.2s ease-in-out;
+      }
+
+      .question-card:focus-within { 
+        border-left: 6px solid #2e7d32; 
+        box-shadow: 0 4px 10px rgba(46, 125, 50, 0.15);
+      }
+
+      .question-label { font-size: 11pt; font-weight: 500; margin-bottom: 12px; display: block; color: #202124; }
+
+      .form-control, .form-select {
+        border: none; 
+        border-bottom: 1px solid #dadce0; 
+        border-radius: 0; 
+        background-color: transparent; 
+        padding: 8px 0;
+      }
+
+      .form-control:focus, .form-select:focus { 
+        box-shadow: none; 
+        border-bottom: 2px solid #2e7d32; 
+      }
+
+      /* --- BUTTONS --- */
+      .btn-submit { 
+        background-color: #2e7d32; 
+        color: white; 
+        border: none; 
+        padding: 10px 24px; 
+        border-radius: 4px; 
+        font-weight: 500; 
+        transition: background 0.3s;
+      }
+
+      .btn-submit:hover { 
+        background-color: #1b5e20; 
+        color: white; 
+      }
+      
+      .btn-submit:disabled { background-color: #a5d6a7; }
+      
+      /* --- MODAL STYLING --- */
+      .modal-header { background-color: #2e7d32; color: white; }
+      .list-group-item { font-size: 0.9rem; border: none; padding-left: 0; }
+      .summary-box { background: #f1f8e9; border-left: 4px solid #2e7d32; padding: 10px; border-radius: 4px; font-size: 0.9rem; color: #333; }
+
+      /* --- REPLACEMENT CSS --- */
+      .editable-doc-input {
+        border-bottom: 1px solid #e0e0e0;
+        background: transparent;
+        width: 100%;
+        color: #333;
+        font-size: 0.9rem;
+        padding: 8px 4px; /* More breathing room */
+        margin-bottom: 4px;
+        outline: none;
+        
+        /* This ensures it grows automatically */
+        min-height: 24px;
+        height: auto;
+        overflow: visible; 
+        line-height: 1.5;
+        white-space: pre-wrap; /* Preserves text wrapping */
+        word-break: break-word; /* Prevents long words from breaking layout */
+        cursor: text;
+      }
+      
+      .editable-doc-input:focus {
+        border-bottom: 2px solid #2e7d32;
+        background: #f1f8e9;
+      }
+
+      /* CSS TRICK: Placeholder for ContentEditable Divs */
+      .editable-doc-input:empty:before {
+        content: attr(placeholder);
+        color: #aaa;
+        cursor: text;
+      }
+      
+      .form-check-input:checked {
+        background-color: #2e7d32;
+        border-color: #2e7d32;
+      }
+    </style>
+  </head>
+  <body>
+    
+    <div class="form-container">
+      
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        
+        <button onclick="goBack()" class="btn btn-sm btn-outline-secondary" style="border-radius: 20px; background: rgba(255,255,255,0.8);">
+          ← Kembali ke Dashboard
+        </button>
+
+        <button type="button" class="btn btn-warning text-white shadow-sm" onclick="openEvakinModal()">
+          <i class="fas fa-file-contract me-2"></i> Input Data Evakin
+        </button>
+        
+      </div>
+
+      <form id="bmnForm" onsubmit="handleFormSubmit(event)">
+
+        <div class="title-card">
+          <div class="text-center mb-3">
+            <img src="https://lh3.googleusercontent.com/d/1-f9NF-GxTZ_ivF3FAzvMTUZRDiRg8Dru" 
+                 referrerpolicy="no-referrer"
+                 style="width: 100%; max-width: 100%; height: auto; border-radius: 4px; object-fit: cover;">
+          </div>
+          <h1 class="form-title">Input Data BMN</h1>
+          <p class="form-desc">Silakan isi formulir di bawah ini. Dokumen persyaratan akan muncul saat memilih Jenis Pengelolaan.</p>
+          <hr style="border-top: 1px solid #e0e0e0;">
+          <small class="text-danger">* Wajib diisi </small>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">1. PIC <span class="text-danger">*</span></label>
+          <select name="pic" id="pic" class="form-select" required>
+            <option value="" selected disabled>Pilih PIC</option>
+            <option value="Ari">Ari</option>
+            <option value="Wawan">Wawan</option>
+            <option value="Agus Hendra">Agus Hendra</option>
+            <option value="Wahyu">Wahyu</option>
+            <option value="Denny">Denny</option>
+          </select>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">2. Kode Satker <span class="text-danger">*</span></label>
+          <input type="text" name="kodeSatker" id="kodeSatker" class="form-control" 
+                 placeholder="Masukkan Kode (Lalu klik luar kotak)" 
+                 required
+                 onchange="lookupSatker()">
+          <small class="text-muted" id="satkerStatus" style="display:none; font-size: 0.8rem;">
+            <i class="fas fa-spinner fa-spin"></i> Mencari Satker...
+          </small>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">3. Satker (Terisi Otomatis) <span class="text-danger">*</span></label>
+          <input type="text" name="satker" id="satkerName" class="form-control bg-light" 
+                 placeholder="Otomatis terisi..." readonly required>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">4. Jenis Pengelolaan BMN <span class="text-danger">*</span></label>
+          <select name="jenisPengelolaan" id="jenisPengelolaan" class="form-select" required onchange="showDocumentChecklist(this)">
+            <option selected value="">Pilih Jenis Pengelolaan</option>
+            <option value="PSP">PSP</option>
+            <option value="Alih Status">Alih Status</option>
+            <option value="Penetapan status Penggunaan BMN untuk dioperasikan oleh Pihak Lain">Penggunaan BMN untuk dioperasikan oleh Pihak Lain</option>
+            <option value="Penggunaan Bersama">Penggunaan Bersama</option>
+            <option value="Sewa">Sewa</option>
+            <option value="KSP">KSP</option>
+            <option value="Pinjam Pakai">Pinjam Pakai</option>
+            <option value="Penjualan">Penjualan</option>
+            <option value="Hibah">Hibah</option>
+            <option value="Penghapusan">Penghapusan</option>
+            <option value="Pemusnahan">Pemusnahan</option>
+            <option value="Ralat">Ralat</option>
+          </select>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">5. Jenis BMN <span class="text-danger">*</span></label>
+          <select name="jenisBmn" class="form-select" required>
+            <option selected value="">Pilih Jenis BMN</option>
+            <option value="tanah dan/atau bangunan">tanah dan/atau bangunan</option>
+            <option value="selain tanah dan/atau bangunan">selain tanah dan/atau bangunan</option>
+          </select>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">6. No. Surat Permohonan <span class="text-danger">*</span></label>
+          <input type="text" name="noSurat" class="form-control" placeholder="Jawaban Anda" required>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">7. Tgl Surat Permohonan <span class="text-danger">*</span></label>
+          <input type="date" name="tglSurat" class="form-control" required>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">8. Tgl Diterima Lengkap</label>
+          <input type="date" name="tglTerima" class="form-control">
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">9. No Tiket SIMAN <span class="text-danger">*</span></label>
+          <input type="text" name="noTiket" class="form-control" placeholder="Jawaban Anda" required>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">10. No KMK/Persetujuan (Angka Saja)</label>
+          <input type="text" name="noKmk" class="form-control" placeholder="Hanya angka..." 
+                 oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">11. Tgl Persetujuan</label>
+          <input type="date" name="tglSetuju" class="form-control">
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">12. Hal Persetujuan</label>
+          <textarea name="halPersetujuan" class="form-control" rows="1" placeholder="Jawaban Anda"></textarea>
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">13. Nilai BMN (Rp)</label>
+          <input type="text" name="nilaiBmn" id="nilaiBmn" class="form-control" placeholder="Rp 0" onkeyup="formatRupiah(this)">
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">14. Nilai Limit (Rp)</label>
+          <input type="text" name="nilaiLimit" id="nilaiLimit" class="form-control" placeholder="Rp 0" onkeyup="formatRupiah(this)">
+        </div>
+
+        <div class="question-card">
+          <label class="question-label">15. Link Dokumen</label>
+          <input type="text" name="linkDokumen" class="form-control" placeholder="https://...">
+        </div>
+        <input type="hidden" name="jsonChecklist" id="jsonChecklist">
+        <div class="d-flex justify-content-between align-items-center mt-4">
+          <button type="submit" class="btn btn-submit">Kirim Data</button>
+          <button type="button" onclick="resetForm()" class="btn text-secondary">Kosongkan Manual</button>
+        </div>
+
+      </form>
+    </div>
+
+    <div class="modal fade" id="docChecklistModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-clipboard-check me-2"></i>Persyaratan Dokumen</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+            <div class="modal-body">
+            
+            <div class="summary-box mb-3">
+              <h6 class="mb-1 fw-bold text-success">Resume Input:</h6>
+              <div id="modalSummaryContent">
+                </div>
+            </div>
+
+            <div id="subCategoryContainer" class="mb-3 d-none">
+                <label class="fw-bold small mb-1"><i class="fas fa-filter text-secondary me-1"></i> Pilih Kategori Detail:</label>
+                <select id="subCategorySelect" class="form-select form-select-sm" onchange="handleSubCategoryChange()">
+                    </select>
+            </div>
+
+            <h6 class="fw-bold"><i class="fas fa-file-alt text-secondary me-1"></i> Checklist Dokumen:</h6>
+            <ul id="modalDocList" class="list-group list-group-flush small">
+              </ul>
+
+            </div>
+          <div class="modal-footer d-flex justify-content-between">
+  <button type="button" class="btn btn-outline-success" onclick="copyChecklist()">
+    <i class="fas fa-copy me-2"></i>Copy Checklist
+  </button>
+  <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Selesai</button>
+</div>
+        </div>
+      </div>
+    </div>
+
+   <div class="modal fade" id="evakinModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title fw-bold"><i class="fas fa-file-contract me-2"></i>Form Input Data Evakin</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body bg-light">
+        
+        <form id="evakinForm" onsubmit="handleEvakinSubmit(event)" novalidate>
+          
+          <div class="mb-3">
+            <label class="form-label fw-bold small">1. Nomor Tiket <span class="text-danger">*</span></label>
+            <input type="text" name="ev_noTiket" class="form-control" required placeholder="Masukkan No Tiket...">
+            <div class="invalid-feedback">Wajib diisi.</div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-5 mb-3">
+              <label class="form-label fw-bold small">2. Kode Satker <span class="text-danger">*</span></label>
+              <input type="text" name="ev_kodeSatker" id="ev_kodeSatker" class="form-control" required 
+                     placeholder="Ketik Kode..." onchange="lookupEvakinSatker()">
+              <div class="invalid-feedback">Wajib diisi.</div>
+              <small id="ev_satkerStatus" class="text-muted" style="display:none; font-size: 0.75rem;">
+                 <i class="fas fa-spinner fa-spin"></i> Mencari...
+              </small>
+            </div>
+            <div class="col-md-7 mb-3">
+              <label class="form-label fw-bold small">3. Nama Satker <span class="text-danger">*</span></label>
+              <input type="text" name="ev_namaSatker" id="ev_namaSatker" class="form-control bg-white" readonly required placeholder="Otomatis terisi...">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold small">4. No. Laporan Evakin <span class="text-danger">*</span></label>
+              <input type="text" name="ev_noLaporan" class="form-control" required>
+              <div class="invalid-feedback">Wajib diisi.</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold small">5. Tgl Laporan Evakin <span class="text-danger">*</span></label>
+              <input type="date" name="ev_tglLaporan" class="form-control" required>
+              <div class="invalid-feedback">Wajib diisi.</div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold small">6. Jumlah NUP <span class="text-danger">*</span></label>
+            <input type="number" name="ev_jmlNup" class="form-control" placeholder="0" required>
+            <div class="invalid-feedback">Wajib diisi.</div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold small">7. No Surat Pengantar <span class="text-danger">*</span></label>
+              <input type="text" name="ev_noSuratPengantar" class="form-control" required>
+              <div class="invalid-feedback">Wajib diisi.</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold small">8. Tgl Surat Pengantar <span class="text-danger">*</span></label>
+              <input type="date" name="ev_tglSuratPengantar" class="form-control" required>
+              <div class="invalid-feedback">Wajib diisi.</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold small">9. No Surat Tinjut Satker</label>
+              <input type="text" name="ev_noSuratTinjut" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold small">10. Tanggal Surat Tinjut</label>
+              <input type="date" name="ev_tglSuratTinjut" class="form-control">
+            </div>
+          </div>
+
+          <div class="modal-footer border-top-0 pb-0 px-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-warning fw-bold">
+              <i class="fas fa-save me-1"></i> Simpan Data Evakin
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      function goBack() {
+        google.script.run.withSuccessHandler(function(url) {
+          window.open(url, "_top");
+        }).getScriptUrl();
+      }
+
+      function resetForm() {
+        document.getElementById('bmnForm').reset();
+        window.scrollTo(0, 0);
+      }
+
+      /* --- CURRENCY FORMATTER --- */
+      function formatRupiah(element) {
+        var prefix = "Rp ";
+        var value = element.value.replace(/\D/g, ""); 
+        var string_value = value.toString();
+        var sisa = string_value.length % 3;
+        var rupiah = string_value.substr(0, sisa);
+        var ribuan = string_value.substr(sisa).match(/\d{3}/gi);
+        
+        if (ribuan) {
+          var separator = sisa ? '.' : '';
+          rupiah += separator + ribuan.join('.');
+        }
+        element.value = prefix + rupiah;
+      }
+
+      /* --- LOOKUP SATKER --- */
+      function lookupSatker() {
+        var codeInput = document.getElementById("kodeSatker").value;
+        var nameInput = document.getElementById("satkerName");
+        var statusMsg = document.getElementById("satkerStatus");
+
+        if (!codeInput) {
+          nameInput.value = "";
+          return;
+        }
+
+        statusMsg.style.display = "block";
+        nameInput.value = "Sedang memuat...";
+        nameInput.classList.remove("text-danger");
+
+        google.script.run.withSuccessHandler(function(resultName) {
+          statusMsg.style.display = "none";
+          if (resultName === "Satker Tidak Ditemukan" || resultName.startsWith("Error")) {
+            nameInput.value = "";
+            nameInput.placeholder = resultName;
+            alert("Kode Satker tidak ditemukan.");
+          } else {
+            nameInput.value = resultName;
+          }
+        }).getSatkerName(codeInput);
+      }
+
+      /* --- NEW: DOCUMENT CHECKLIST LOGIC --- */
+      
+      /* --- REVISED CONFIGURATION: SUPPORTING SUB-CATEGORIES --- */
+      const DOCUMENT_CHECKLIST = {
+        "PSP": {
+          "Checklist PSP BMN T/B": [
+            "Surat usulan penetapan status penggunaan BMN",
+            "Daftar BMN yang diusulkan PSP-nya",
+            "Fotokopi IMB/sertipikat tanah/BAST/dokumen kepemilikan lainnya",
+            "Surat pernyataan tanggung jawab bermeterai yang menyatakan bahwa BMN tersebut digunakan dalam penyelenggaraan tugas dan fungsi Kementerian/Lembaga, (dalam hal dokumen kepemilikan tidak ada) yang disertai fotokopi dokumen kepemilikan/penguasaan, berupa akta jual beli, girik, letter c, berita acara serah terima terkait perolehan barang, dan/atau dokumen lain sesuai peraturan perundang-undangan",
+            "Surat keterangan kebenaran dokumen Digital",
+            "Foto BMN",
+            "KIB",
+            "Laporan Listing BMN/Laporan Kondisi Barang/LBKP"
+          ],
+          "Checklist PSP BMN Non T/B": [
+            "Surat usulan penetapan status penggunaan BMN",
+            "Daftar BMN yang diusulkan PSP-nya",
+            "Dok. Kepemilikan: BPKB/STNK",
+            "Surat keterangan kebenaran dokumen digital",
+            "Surat pernyataan tanggung jawab bermeterai yang menyatakan bahwa BMN tersebut digunakan dalam penyelenggaraan tugas dan fungsi Kementerian/Lembaga, (dalam hal dokumen kepemilikan tidak ada) yang disertai fotokopi dokumen kepemilikan/penguasaan, berupa akta jual beli, girik, letter c, berita acara serah terima terkait perolehan barang, dan/atau dokumen lain sesuai peraturan perundang-undangan",
+            "Foto BMN",
+            "KIB",
+            "Laporan Listing BMN/Laporan Kondisi Barang/LBKP"
+          ]
+        },
+        "Alih Status": [
+          "Surat usulan permohonan pengalihan status penggunaan BMN",
+          "Daftar BMN yang diusulkan alih status",
+          "Keputusan PSP (diperlukan apabila data Kep PSP tidak terdapat di master aset BMN)",
+          "Surat pernyataaan bermaterai dari calon Pengguna Barang baru yang memuat kesediaan menerima pengalihan BMN",
+          "Surat Pernyataan Tanggung Jawab Mutlak"
+        ],
+        "Penetapan status Penggunaan BMN untuk dioperasikan oleh Pihak Lain": [
+          "Surat Permohonan yang memuat paling sedikit: 1) Data BMN; 2) Informasi mengenai Pihak Lain; 3) Jangka waktu; 4) Penjelasan dan pertimbangan; Materi Perjanjian; 5) Besaran tarif jika ada",
+          "Fotokopi keputusan penetapan status Penggunaan BMN",
+          "Fotokopi surat permintaan pengoperasian",
+          "Surat pernyataan bermeterai cukup",
+          "Surat Pernyataan Pihak Lain yang memuat paling sedikit: 1) Tujuan pengoperasian; 2) Kesediaan Biaya; 3) Kompensasi; 4) Larangan Pengalihan; dan 5) Pengembalian BMN"
+        ],
+        "Sewa": [
+          "Surat Permohonan sewa BMN",
+          "Foto BMN yang diajukan sewa",
+          "Gambar lokasi dan/atau site plan tanah dan/atau bangunan yang akan disewakan",
+          `Deskripsi Kuantitas BMN:
+- luas tanah dan/atau bangunan keseluruhan dan yang akan disewakan
+- jumlah atau kapasitas BMN selain tanah dan atau bangunan`,
+          `Nilai BMN yang akan disewakan, berupa:
+- nilai tanah dan/ atau bangunan keseluruhan dan yang akan disewakan
+- nilai BMN selain tanah dan/ atau bangunan yang akan disewakan`,
+          "Kep PSP",
+          "KIB",
+          "Laporan History BMN (Sakti)",
+          "Dokumen kepemilikan/Dok. sejenis/surat pernyataan tanggung jawab bermeterai cukup dari pimpinan satuan kerja bersangkutan yang menyatakan bahwa BMN tersebut benar-benar dimiliki oleh Kementerian/ Lembaga tersebut",
+          `Data calon penyewa (Dalam hal usulan Sewa yang diajukan oleh Pengguna Barang bukan berdasarkan permohonan dari calon penyewa, maka usulan Sewa kepada Pengelola Barang tidak perlu disertai data calon penyewa):
+- nama
+- alamat
+- bentuk kelembagaan
+- jenis kegiatan usaha
+- NPWP
+- surat permohonan sewa dari calon penyewa
+- fotokopi Surat Izin Usaha/Tanda Izin Usaha atau yang sejenis untuk calon penyewa yang berbentuk badan usaha`,        
+          "Surat pernyataan dari Pengguna Barang yang memuat BMN yang akan disewakan tidak sedang digunakan dalam rangka penyelenggaraan tugas dan fungsi Kementerian/Lembaga dan penyewaan BMN tidak akan mengganggu pelaksanaan tugas dan fungsi Kementerian/ Lembaga",
+          "Pernyataan kesediaan dari calon penyewa untuk menjaga dan memelihara BMN serta mengikuti ketentuan yang berlaku selama jangka waktu Sewa. (Dalam hal usulan Sewa yang diajukan oleh Pengguna Barang bukan berdasarkan permohonan dari calon penyewa, maka usulan Sewa kepada Pengelola Barang tidak perlu disertai surat pernyataan)",
+          "LAPORAN HASIL AUDIT APIP (dalam hal sewa telah dilaksanakan tanpa persetujuan pengelola barang)"
+        ],
+        "Pinjam Pakai": [
+         'Surat Permohonan Pinjam Pakai dari satker dengan memuat:                                                                     - pertimbangan yang mendasari permohonan Pinjam Pakai                                                                          - identitas peminjam pakai                                                                                                     - tujuan penggunaan objek Pinjam Pakai                                                                                         - rincian data BMN yang dijadikan sebagai objek Pinjam Pakai yang dibutuhkan, termasuk luas tanah dan lokasi tanah dan/atau     bangunan dalam hal objek Pinjam Pakai adalah BMN berupa tanah dan/atau bangunan; dan                                  - jangka waktu',
+        'Surat permohonan Pinjam Pakai dari calon peminjam pakai (Pem Daerah/Pem Desa), yang paling sedikit memuat:                     - pertimbangan yang mendasari permohonan Pinjam Pakai                                                                          - identitas peminjam pakai                                                                                                      - tujuan penggunaan objek Pinjam Pakai                                                                                          - jangka waktu',     
+        "Surat pernyataan dari Pengguna Barang bahwa pelaksanaan Pinjam Pakai atas objek dimaksud tidak mengganggu pelaksanaan tugas dan fungsi penyelenggaraan pemerintahan negara",
+        "Data BMN yang dijadikan sebagai objek Pinjam Pakai (Kode Barang, Nama Barang, NUP, Tahun Perolehan, Harga Perolehan, Nilai Buku)",
+      "Dokumen Kepemilikan",
+      "Kep PSP",
+      "KIB",
+      "Foto"
+        ],
+          "KSP": [
+          "Surat Permohonan KSP dari Pengguna Barang, yang disertai dengan pertimbangan pelaksaan KSP",
+          "Fotokopi dokumen kepemilikan BMN",
+          "Kep PSP",
+          "Daftar barang",
+          "Foto BMN",
+          "Gambar situasi/peta lokasi",
+          'Dokumen study kelayakan (feasibility study) yang memuat:                                                                                                                     -Analisis Ekonomi dan Finansial                                                                                                                   -Analisis Teknis                                                                                                                        -Analisis Hukum                                                                                                               - Besaran Investasi',
+        "Surat Pernyataan Tanggung Jawab Mutlak (SPTJM): Pernyataan dari Pengguna Barang bahwa seluruh dokumen yang disampaikan adalah benar dan sah secara hukum", 
+        "Surat Keterangan: Bahwa BMN tersebut tidak sedang dalam sengketa atau tidak sedang digunakan untuk tugas dan fungsi pokok instansi dalam jangka waktu KSP"
+        ],
+        "Penjualan": {
+         "Penjualan BMN Selain T/B (Kendaraan Bermotor)": [
+            "Surat Permohonan Penghapusan/Pemindahtanganan Beserta Pertimbangan",
+            "Keputusan Pembentukan Tim Internal",
+            "Berita Acara Penelitian  Oleh Tim Internal",
+            "Daftar Barang yang diusulkan untuk Dipindahtangankan",
+            "Dokumen kepemilikan/STNK, & BPKB/Surat Pernyataan Tidak terdapat Dokumen Kepemilikan (Jika Tidak Memiliki Dokumen kepemilkan)",
+            "Foto BMN",
+            "Surat Keterangan tentang Kondisi Kendaraan dari Instansi Teknis (Jika umur BMN dibawah masa manfaat 7 Tahun)",
+            "SK Panitia Penaksir",
+            "Kertas Kerja Penilaian Nilai Taksiran sesuai KMK 375/2024",
+            "Surat pernyataan tanggung jawab nilai limit yang mencantumkan Perhitungan nilai limit sebagaimana tercantum pada  kertas kerja analisis telah sesuai dengan ketentuan pada KMK nomor 375 Tahun 2024 tentang Pedoman Penentuan Nilai Taksiran BMN Selain Tanah dan/Atau Bangunan Berupa Kendaraan Bermotor oleh Panitia Penaksir",
+            "Surat Pernyataan Tidak Mengganggu Tupoksi",
+            "KIB",
+            "Laporan Kondisi Barang",
+            "Kep PSP",
+            "Surat pernyataan tanggung jawab atas kebenaran formil serta materiil objek yang diusulkan"
+          ],
+          "Penjualan BMN Selain T/B (Non Kendaraan Bermotor)": [
+           "Surat Permohonan Penghapusan/Pemindahtanganan Beserta Pertimbangan",
+            "Keputusan Pembentukan Tim Internal",
+            "Berita Acara Penelitian  Oleh Tim Internal",
+            "Daftar Barang yang diusulkan untuk Dipindahtangankan",
+            "Dokumen kepemilikan/Surat Pernyataan Tidak terdapat Dokumen Kepemilikan (Jika Tidak Memiliki Dokumen kepemilkan)",
+            "Foto BMN",
+            "Surat Keterangan tentang Kondisi Kendaraan dari Instansi Teknis (Jika ada)",
+            "Surat pernyataan tanggung jawab nilai limit",
+            "Surat Pernyataan Tidak Mengganggu Tupoksi",
+            "KIB (Jika ada)",
+            "Laporan Kondisi Barang",
+            "Kep PSP",
+            "Surat pernyataan tanggung jawab atas kebenaran formil serta materiil objek yang diusulkan"
+          ],
+          },
+        "Hibah": [
+          'Surat Permohonan Pemindahtanganan berupa hibah beserta Pertimbangan BMN memenuhi:                                          a. bukan barang rahasia negara                                                                                              b. bukan merupakan barang yang menguasai hajat hidup orang banyak                                                            c. tidak digunakan lagi dalam penyelenggaraan tugas dan fungsi penyelenggaraan pemerintahan negara',
+          "Surat Keputusan Pembentukan Tim Internal",
+          "Berita Acara Penelitian dan Penilaian Oleh Tim Internal",
+          "Daftar Barang yang diusulkan untuk Dihibahkan",
+          "KIB",
+          "Data calon penerima hibah (identitas calon penerima hibah)",
+          "Surat Pernyataan Kesediaan Menerima Hibah",
+          "Surat pernyataan tanggung jawab mutlak atas kebenaran formil dan materiil",
+          "Surat Pernyataan Tidak Mengganggu Tupoksi",
+          "SPTJM/Dokumen Kepemilikan"
+        ],
+        "Penghapusan": {
+        "Penghapusan BMN T/B dikarenakan terdapat anggaran bangunan pengganti": [
+        "Surat Permohonan Penghapusan Beserta Pertimbangan",
+        "Surat Keputusan Pembentukan Tim Internal",
+        "Berita Acara Penelitian Oleh Tim Internal",
+        "Daftar Barang yang diusulkan untuk Dihapuskan/Dipindahtangankan",
+        "KIB",
+        "Foto BMN",     
+        "Fotokopi DIPA untuk Bangunan Pengganti",
+        'Surat pernyataan Pengguna Barang/Kuasa Pengguna Barang:                                                                        - 1.mengenai tanggung jawab penuh atas kebenaran permohonan yang diajukan, baik materiil maupun formil                          -2. bahwa BMN berupa bangunan yang akan direkonstruksi, sudah tersedia anggaran penggantinya dalam dokumen penganggaran sehingga harus dilakukan Penghapusan                                                                                           - serta terhadap nilai limit apabila terdapat penjualan bongkarannya',     
+      "Surat Pernyataan Tidak Mengganggu Tupoksi",
+      "Keputusan PSP",
+      "Dokumen kepemilikan/Sertifikat/ IMB/Surat Pernyataan yang menyatakan bahwa BMN yang akan dihapuskan tersebut merupakan BMN pada Kementerian/Lembaga bersangkutan",
+      " Laporan review APIP jika diperlukan"
+        ],
+      "Penghapusan BMN T/B dikarenakan rusak berat dan/atau membahayakan lingkungan sekitar": [
+        "Surat Permohonan Penghapusan Beserta Pertimbangan",
+        "Surat Keputusan Pembentukan Tim Internal",
+        "Berita Acara Penelitian Oleh Tim Internal",
+        "Daftar Barang yang diusulkan untuk Dihapuskan/Dipindahtangankan",
+        "KIB",
+        "Foto BMN",     
+        "Surat Keterangan Rusak Berat dan/atau Membahayakan Lingkungan Sekitar dari instansi yang berwenang",
+        'Surat pernyataan Pengguna Barang/Kuasa Pengguna Barang:                                                                        - 1.mengenai tanggung jawab penuh atas kebenaran permohonan yang diajukan, baik materiil maupun formil                          -2. pernyataan bahwa BMN berupa bangunan berada dalam kondisi rusak berat dan/atau membahayakan lingkungan sekitar dan belum tersedia anggaran untuk bangunan pengganti, sehingga harus dilakukan Penghapusan',
+      "Surat Pernyataan Tidak Mengganggu Tupoksi",
+      "Keputusan PSP",
+      "Dokumen kepemilikan/Sertifikat/ IMB/Surat Pernyataan yang menyatakan bahwa BMN yang akan dihapuskan tersebut merupakan BMN pada Kementerian/Lembaga bersangkutan",
+      " Laporan review APIP jika diperlukan"
+        ],
+        "Penghapusan BMN T/B dikarenakan berdiri di atas tanah pihak lain": [
+        "Surat Permohonan Penghapusan Beserta Pertimbangan",
+        "Surat Keputusan Pembentukan Tim Internal",
+        "Berita Acara Penelitian Oleh Tim Internal",
+        "Daftar Barang yang diusulkan untuk Dihapuskan/Dipindahtangankan",
+        "KIB",
+        "Foto BMN",     
+        "Surat Keterangan Rusak Berat dan/atau Membahayakan Lingkungan Sekitar dari instansi yang berwenang",
+        'Surat pernyataan Pengguna Barang/Kuasa Pengguna Barang:                                                                        - 1.mengenai tanggung jawab penuh atas kebenaran permohonan yang diajukan, baik materiil maupun formil                          -2. pernyataan bahwa BMN berupa bangunan yang berdiri di atas tanah Pihak Lain atau Pemerintah Daerah tidak dapat dilakukan Pemindahtanganan, sehingga harus dilakukan Penghapusan',
+      "Surat Pernyataan Tidak Mengganggu Tupoksi",
+      "Keputusan PSP",
+      "Dokumen kepemilikan/Sertifikat/ IMB/Surat Pernyataan yang menyatakan bahwa BMN yang akan dihapuskan tersebut merupakan BMN pada Kementerian/Lembaga bersangkutan",
+      "Fotokopi perjanjian antara Pengguna Barang dengan Pihak Lain atau Pemerintah Daerah, jika ada",
+      "Surat pemberitahuan dari Pihak Lain atau Pemerintah Daerah terkait Penghapusan BMN berupa bangunan yang berdiri di atas tanah milik Pihak Lain atau Pemerintah Daerah"
+        ],    
+        "Penghapusan BMN STB-Aset Tidak Berwujud": [
+        "Surat Permohonan Penghapusan Beserta Pertimbangan",
+        "Surat Keputusan Pembentukan Tim Internal",
+        "Berita Acara Penelitian Oleh Tim Internal",
+        "Daftar Barang yang diusulkan untuk Dihapuskan/Dipindahtangankan",
+        "KIB",
+        "Screenshot ATB/Aplikasi",     
+        'Surat pernyataan Pengguna Barang/Kuasa Pengguna Barang:                                                                        - 1.mengenai tanggung jawab penuh atas kebenaran permohonan yang diajukan, baik materiil maupun formil                          -2. pernyataan bahwa BMN telah tidak sesuai dengan perkembangan teknologi/tidak sesuai dengan kebutuhan organisasi/rusak berat, atau masa manfaat/kegunaan telah berakhir., sehingga harus dilakukan Penghapusan',
+      "Surat Pernyataan Tidak Mengganggu Tupoksi",
+      "Keputusan PSP",
+      "Dokumen kepemilikan/Surat Pernyataan yang menyatakan bahwa BMN yang akan dihapuskan tersebut merupakan BMN pada Kementerian/Lembaga bersangkutan",
+      " Laporan review APIP jika diperlukan"
+          ],
+        "Penghapusan BMN STB dikarenakan kecurian": [
+        "Surat Permohonan Penghapusan  Beserta Pertimbangan",
+        "Surat Keputusan Pembentukan Tim Internal",
+        "Berita Acara Penelitian Oleh Tim Internal",
+        "Daftar Barang yang diusulkan untuk Dihapuskan/Dipindahtangankan",
+        "KIB",
+        "Screenshot ATB/Aplikasi",     
+        'Surat pernyataan Pengguna Barang/Kuasa Pengguna Barang:                                                                        - 1.mengenai tanggung jawab penuh atas kebenaran permohonan yang diajukan, baik materiil maupun formil                          -2. Surat pernyataan bahwa BMN telah kecurian dan pernyataan tidak terdapat TGR terhadap kejadian kecurian tersebut',
+      "Laporan kecurian dari Kepolisian",
+      "Keputusan PSP",
+      "Dokumen kepemilikan/Surat Pernyataan yang menyatakan bahwa BMN yang akan dihapuskan tersebut merupakan BMN pada Kementerian/Lembaga bersangkutan",
+      " Laporan review APIP jika diperlukan"
+          ],
+        },
+        "Pemusnahan": [
+        'Surat permohonan dari Pengguna Barang yang memuat:                                                                             1. pertimbangan dan alasan Pemusnahan BMN; dan                                                                                 2. data BMN yang akan dimusnahkan, sekurangkurangnya memuat tahun perolehan, identitas barang, dan nilai perolehan dan/atau nilai buku',
+        'Surat Pernyataan dari Pengguna Barang/ Kuasa Pengguna Barang yang sekurang-kurangnya memuat:                                   1. identitas Pengguna Barang/Kuasa Pengguna Barang;                                                                             2. pernyataan mengenai tanggung jawab penuh atas kebenaran permohonan yang diajukan, baik materiil maupun formil;                                                                                                                        3. pernyataan bahwa BMN tidak lagi dapat digunakan, dimanfaatkan, dan/atau dipindahtangankan atau BMN harus · dilakukan Pemusnahan berdasarkan ketentuan peraturan perundang-undangan (disebutkan ketentuan peraturan nomor berapa)', 
+        "fotokopi dokumen kepemilikan, untuk BMN yang harus dilengkapi dengan dokumen kepemilikan/dalam hal tidak ada dokumen kepemilikan dilampirkan Surat Pernyataan bermeterai cvkup yang ditandatangani oleh pejabat struktural yang berwenang pada Kementerian/Lembaga bersangkutan yang menyatakan bahwa BMN yang akan dimusnahkan tersebut merupakan BMN pada satker",
+      "Kep Pembentukan Tim Internal Pemusnahan",
+      "Laporan hasil penelitian pemusnahan",
+      "KIB",
+      "Laporan kondisi barang",
+      "Foto",
+      "Kep PSP"
+        ],
+      
+      };
+
+      /* --- GLOBAL STATE FOR CURRENT SELECTION --- */
+      var currentChecklistData = null; 
+
+      /* --- MAIN FUNCTION: SHOW MODAL --- */
+      function showDocumentChecklist(selectElement) {
+        var jenis = selectElement.value;
+        if (!jenis) return;
+
+        // 1. Get Header Data
+        var pic = document.getElementById("pic").value || "-";
+        var kodeSatker = document.getElementById("kodeSatker").value || "-";
+        var satkerName = document.getElementById("satkerName").value || "-";
+
+        // 2. Populate Summary
+        var summaryHTML = `
+          <table style="width:100%">
+            <tr><td style="width:60px"><strong>PIC</strong></td><td>: ${pic}</td></tr>
+            <tr><td><strong>Satker</strong></td><td>: ${kodeSatker} <br> <small class="text-muted">${satkerName}</small></td></tr>
+            <tr><td><strong>Jenis</strong></td><td>: <span class="badge bg-success" id="modalJenisBadge">${jenis}</span></td></tr>
+          </table>
+        `;
+        document.getElementById("modalSummaryContent").innerHTML = summaryHTML;
+
+        // 3. Determine if Simple List or Sub-Categories
+        var config = DOCUMENT_CHECKLIST[jenis];
+        var subCatContainer = document.getElementById("subCategoryContainer");
+        var subCatSelect = document.getElementById("subCategorySelect");
+        
+        currentChecklistData = config; // Store reference
+
+        if (Array.isArray(config) || !config) {
+            // CASE A: Simple Array (e.g., Sewa)
+            subCatContainer.classList.add("d-none");
+            renderChecklist(config || ["Dokumen standar sesuai peraturan."]);
+        } else {
+            // CASE B: Object with Sub-Categories (e.g., PSP)
+            subCatContainer.classList.remove("d-none");
+            subCatSelect.innerHTML = "";
+            
+            var keys = Object.keys(config);
+            keys.forEach(key => {
+                var opt = document.createElement("option");
+                opt.value = key;
+                opt.text = key;
+                subCatSelect.add(opt);
+            });
+            
+            // Render the first option by default
+            renderChecklist(config[keys[0]]);
+        }
+
+        // 4. Initialize "Keterangan Lainnya" & Add Buttons
+        setupNoteContainer();
+
+        // 5. Show Modal
+        var myModal = new bootstrap.Modal(document.getElementById('docChecklistModal'));
+        myModal.show();
+      }
+
+      /* --- HANDLE DROPDOWN CHANGE --- */
+      function handleSubCategoryChange() {
+        var selectedKey = document.getElementById("subCategorySelect").value;
+        // Access global currentChecklistData (which holds the PSP object)
+        if (currentChecklistData && currentChecklistData[selectedKey]) {
+            renderChecklist(currentChecklistData[selectedKey]);
+        }
+      }
+
+      /* --- HELPER: RENDER LIST ITEMS --- */
+      function renderChecklist(items) {
+        var listContainer = document.getElementById("modalDocList");
+        listContainer.innerHTML = ""; // Clear
+        items.forEach(function(doc) {
+          addChecklistItem(doc);
+        });
+      }
+
+      function setupNoteContainer() {
+        var listContainer = document.getElementById("modalDocList");
+        var noteContainer = document.getElementById("modalNoteContainer");
+        
+        if (!noteContainer) {
+            var div = document.createElement("div");
+            div.id = "modalNoteContainer";
+            div.className = "mt-3 border-top pt-2";
+            div.innerHTML = `
+                <label class="fw-bold small mb-1">Keterangan Lainnya:</label>
+                <textarea id="keteranganLainnya" class="form-control form-control-sm" rows="3" placeholder="Tulis catatan tambahan di sini..."></textarea>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addChecklistItem()">
+                    <i class="fas fa-plus circle me-1"></i> Tambah Baris Dokumen
+                </button>
+            `;
+            listContainer.parentNode.insertBefore(div, listContainer.nextSibling);
+        } else {
+            document.getElementById("keteranganLainnya").value = "";
+        }
+      }
+
+      /* --- HELPER: ADD NEW ITEM (USING CONTENTEDITABLE DIV) --- */
+      function addChecklistItem(textValue = "") {
+        var ul = document.getElementById("modalDocList");
+        var li = document.createElement("li");
+        
+        // Align start ensures checkbox stays at top if text is long
+        li.className = "list-group-item d-flex align-items-start border-0 px-0 mb-1";
+        
+        li.innerHTML = `
+            <input class="form-check-input me-3 checklist-checkbox mt-2" type="checkbox" style="min-width: 18px;">
+            
+            <div class="editable-doc-input checklist-text flex-grow-1" 
+                 contenteditable="true" 
+                 placeholder="Nama Dokumen...">${textValue}</div>
+            
+            <button type="button" class="btn btn-link text-danger ms-2 p-0 mt-1" onclick="deleteChecklistItem(this)" title="Hapus Baris">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        ul.appendChild(li);
+      }
+
+      /* --- HELPER: DELETE ITEM --- */
+      function deleteChecklistItem(btn) {
+        var li = btn.closest("li");
+        li.remove();
+      }
+
+      /* --- REVISED: COPY TO CLIPBOARD (UPDATED FOR DIVs) --- */
+      function copyChecklist() {
+        var pic = document.getElementById("pic").value || "-";
+        var kodeSatker = document.getElementById("kodeSatker").value || "-";
+        var satkerName = document.getElementById("satkerName").value || "";
+        var jenis = document.getElementById("modalJenisBadge").innerText;
+
+        var subCatContainer = document.getElementById("subCategoryContainer");
+        if (!subCatContainer.classList.contains("d-none")) {
+            var subCat = document.getElementById("subCategorySelect").value;
+            jenis = `${jenis} (${subCat})`; 
+        }
+
+        var checkboxes = document.querySelectorAll(".checklist-checkbox");
+        var texts = document.querySelectorAll(".checklist-text");
+        
+        var clipboardText = `*CHECKLIST PERSYARATAN DOKUMEN*\n`;
+        clipboardText += `-----------------------------------\n`;
+        clipboardText += `*Jenis* : ${jenis}\n`;
+        clipboardText += `*PIC* : ${pic}\n`;
+        clipboardText += `*Satker* : ${kodeSatker}\n`;
+        if(satkerName) clipboardText += `          ${satkerName}\n`;
+        clipboardText += `-----------------------------------\n`;
+
+        if (checkboxes.length > 0) {
+            for (var i = 0; i < checkboxes.length; i++) {
+                // UPDATE HERE: Use .innerText instead of .value
+                var docName = texts[i].innerText.trim(); 
+                
+                if (!docName) continue; 
+                var isChecked = checkboxes[i].checked;
+                var mark = isChecked ? "☑" : "☐"; 
+                clipboardText += `${mark} ${docName}\n`;
+            }
+        } else {
+            clipboardText += `(Tidak ada dokumen)\n`;
+        }
+
+        var ket = document.getElementById("keteranganLainnya").value;
+        if (ket && ket.trim() !== "") {
+            clipboardText += `-----------------------------------\n`;
+            clipboardText += `*Keterangan Lainnya:*\n${ket}\n`;
+        }
+        
+        clipboardText += `-----------------------------------\n`;
+        clipboardText += `Generated by Cockpit KPKNL Denpasar`;
+
+        navigator.clipboard.writeText(clipboardText).then(function() {
+          var btn = document.querySelector("#docChecklistModal .btn-outline-success");
+          var originalHTML = btn.innerHTML;
+          btn.classList.remove("btn-outline-success");
+          btn.classList.add("btn-success");
+          btn.innerHTML = `<i class="fas fa-check"></i> Tersalin!`;
+          setTimeout(function() {
+            btn.classList.remove("btn-success");
+            btn.classList.add("btn-outline-success");
+            btn.innerHTML = originalHTML;
+          }, 2000);
+        }, function(err) {
+          alert('Gagal menyalin: ' + err);
+        });
+      }
+
+      /* --- SUBMIT HANDLER --- */
+      // Form.html <script>
+
+/* --- SUBMIT HANDLER --- */
+function handleFormSubmit(e) {
+  e.preventDefault();
+
+  // 1. CAPTURE CHECKLIST STATE (The new feature)
+  // This saves the checklist data into the hidden input before sending
+  captureChecklistState(); 
+  
+  // 2. PREPARE FORM UI
+  var form = e.target;
+  var btn = form.querySelector("button[type='submit']");
+  var originalText = "Kirim Data";
+  
+  btn.innerHTML = 'Memeriksa... <i class="fas fa-spinner fa-spin"></i>'; 
+  btn.disabled = true;
+
+  try {
+      var noSurat = form.noSurat ? form.noSurat.value : "";
+      var noTiket = form.noTiket ? form.noTiket.value : "";
+
+      // 3. CHECK FOR DUPLICATES (Existing Logic)
+      google.script.run.withSuccessHandler(function(result) {
+        if (result.found) {
+          var msg = "PERINGATAN: Data sudah ada di database!\n\n" + 
+                    result.message + 
+                    "\n\nApakah Anda tetap ingin melanjutkan penyimpanan?\n(Klik OK untuk Lanjut, Cancel untuk Hapus Form)";
+          
+          if (confirm(msg)) {
+            performSave(form, btn, originalText); 
+          } else {
+            form.reset(); 
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            window.scrollTo(0, 0);
+            alert("Formulir telah dikosongkan.");
+          }
+        } else {
+          // No duplicate found, proceed to save directly
+          performSave(form, btn, originalText);
+        }
+      }).withFailureHandler(function(err) {
+         console.error(err); 
+         alert("Gagal menghubungi server: " + err);
+         btn.innerHTML = originalText;
+         btn.disabled = false;
+      }).checkDuplicateData(noSurat, noTiket);
+
+  } catch (error) {
+      console.error(error);
+      alert("Terjadi kesalahan pada Script Client: " + error.message);
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+  }
+}
+// --- NEW HELPER FUNCTION ---
+function captureChecklistState() {
+  var itemsArray = [];
+  var checkboxes = document.querySelectorAll(".checklist-checkbox");
+  var texts = document.querySelectorAll(".checklist-text");
+
+  // Loop through ALL items in the list (Checked AND Unchecked)
+  for (var i = 0; i < checkboxes.length; i++) {
+    // Get text value
+    var val = texts[i].innerText.trim();
+    
+    // Only save if text is not empty
+    if (val) {
+      itemsArray.push({
+        name: val,
+        checked: checkboxes[i].checked // Save true/false status
+      });
+    }
+  }
+
+  var notes = document.getElementById("keteranganLainnya").value || "";
+  
+  var checklistObj = {
+    items: itemsArray,
+    notes: notes
+  };
+
+  // Convert to String and put in hidden input
+  document.getElementById("jsonChecklist").value = JSON.stringify(checklistObj);
+}
+      function performSave(form, btn, originalText) {
+        btn.innerHTML = 'Mengirim... <i class="fas fa-spinner fa-spin"></i>';
+
+        google.script.run.withSuccessHandler(function(response) {
+          alert("Sukses! Data berhasil disimpan.");
+          form.reset();
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          window.scrollTo(0, 0);
+        }).withFailureHandler(function(err){
+           alert("Terjadi Kesalahan saat menyimpan: " + err);
+           btn.innerHTML = originalText;
+           btn.disabled = false;
+        }).saveData(form);
+      }
+
+
+/* --- EVAKIN FUNCTIONS --- */
+      
+      function openEvakinModal() {
+        var myModal = new bootstrap.Modal(document.getElementById('evakinModal'));
+        myModal.show();
+      }
+
+      function lookupEvakinSatker() {
+        var codeInput = document.getElementById("ev_kodeSatker").value;
+        var nameInput = document.getElementById("ev_namaSatker");
+        var statusMsg = document.getElementById("ev_satkerStatus");
+
+        if (!codeInput) {
+          nameInput.value = "";
+          return;
+        }
+
+        statusMsg.style.display = "inline";
+        nameInput.value = "Sedang memuat...";
+
+        google.script.run.withSuccessHandler(function(resultName) {
+          statusMsg.style.display = "none";
+          if (resultName === "Satker Tidak Ditemukan" || resultName.startsWith("Error")) {
+            nameInput.value = "";
+            alert("Kode Satker tidak ditemukan.");
+          } else {
+            nameInput.value = resultName;
+          }
+        }).getSatkerName(codeInput); // Reuse existing server-side function
+      }
+
+      function handleEvakinSubmit(e) {
+        e.preventDefault();
+        var form = e.target;
+        
+        // --- VALIDATION CHECK ---
+        if (!form.checkValidity()) {
+          e.stopPropagation();
+          form.classList.add('was-validated'); // Shows Bootstrap error styles (red borders)
+          alert("Mohon lengkapi field 1 s.d. 8 sebelum menyimpan."); // Optional alert
+          return; // STOP HERE if invalid
+        }
+        
+        var btn = form.querySelector("button[type='submit']");
+        var originalText = btn.innerHTML;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+        btn.disabled = true;
+
+        google.script.run.withSuccessHandler(function(res) {
+          if (res === "Success") {
+            alert("Data Evakin Berhasil Disimpan!");
+            form.reset();
+            form.classList.remove('was-validated'); // Reset validation styles
+            var modalEl = document.getElementById('evakinModal');
+            var modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+          } else {
+            alert("Gagal menyimpan: " + res);
+          }
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }).saveEvakinData(form);
+      }
+
+    </script>
+  </body>
+</html>

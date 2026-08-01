@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      :root { --primary-blue: #0d47a1; --primary-green: #1b5e20; }
+      body {
+        background: linear-gradient(135deg, #0d47a1 0%, #004d40 50%, #1b5e20 100%);
+        min-height: 100vh; font-family: 'Segoe UI', sans-serif; color: #333; padding-bottom: 50px; overflow-x: hidden; 
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); padding: 20px; height: 100%;
+      }
+      .card-compact { padding: 12px 16px !important; }
+      .table-compact th { padding: 3px !important; font-size: 0.65rem !important; }
+      .table-compact td { padding: 4px 6px !important; font-size: 0.8rem !important; }
+
+      /* NEW: Target Box Styles */
+      .target-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 4px 0; }
+      .target-label { font-size: 0.75rem; font-weight: 600; color: #6c757d; }
+      .target-val { font-size: 0.8rem; font-weight: 700; color: #333; }
+      .target-pct { font-size: 0.75rem; font-weight: 700; }
+      .text-success-dark { color: #1b5e20; }
+      .text-warning-dark { color: #e65100; }
+
+      .cockpit-header { text-align: center; color: white; padding: 40px 0 20px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+      .cockpit-title { font-weight: 300; letter-spacing: 2px; font-size: 1.5rem; margin:0; opacity: 0.9; }
+      .cockpit-subtitle { font-weight: 900; font-size: 4rem; margin-top: 5px; text-transform: uppercase; letter-spacing: 2px; line-height: 1; }
+      .top-right-logo {
+        position: absolute; top: 80px; right: 30px; height: 120px; width: auto; z-index: 1000;
+        filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); border-radius: 4px;
+      }
+      .kpi-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+      .glass-select {
+        background-color: rgba(255,255,255,0.6); border: 1px solid #ced4da; border-radius: 8px;
+        font-size: 0.9rem; padding: 8px 12px; color: #495057; cursor: pointer; width: 100%; display: block;
+        transition: border-color 0.2s;
+      }
+      .loader-overlay {
+        position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7);
+        z-index: 9999; display: flex; justify-content: center; align-items: center; color: white; flex-direction: column;
+      }
+      .btn-sync {
+        background: rgba(255,255,255,0.9); border: none; color: var(--primary-blue);
+        font-weight: 600; border-radius: 20px; padding: 6px 20px; font-size: 0.9rem; transition: all 0.3s;
+      }
+      .btn-sync:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+      
+      .table-glass { width: 100%; margin-top: 5px; border-collapse: separate; border-spacing: 0 5px; }
+      .table-glass th { font-size: 0.7rem; text-transform: uppercase; color: #6c757d; font-weight: 700; padding: 5px; text-align: center; border-bottom: 2px solid rgba(0,0,0,0.05); }
+      .table-glass td { background: rgba(255,255,255,0.6); padding: 10px 8px; text-align: center; font-weight: 600; color: #333; font-size: 0.85rem; }
+      .table-glass tr td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+      .table-glass tr td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+
+      .satker-title { font-size: 1.15rem; font-weight: 850; color: var(--primary-blue); line-height: 1.2; margin-bottom: 12px; min-height: 3rem; display: block; }
+
+      #syncToast {
+        visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
+        border-radius: 8px; padding: 16px; position: fixed; z-index: 10000; left: 50%; bottom: 30px;
+        transform: translateX(-50%); font-size: 1rem;
+      }
+      #syncToast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+      @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+      @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+      @media (max-width: 768px) { .cockpit-subtitle { font-size: 2.5rem; } .top-right-logo { height: 60px; top: 60px; right: 10px; } }
+    </style>
+  </head>
+  <body>
+
+    <div id="loader" class="loader-overlay">
+      <div class="spinner-border text-light mb-3" role="status"></div>
+      <div>Loading Data Cockpit...</div>
+    </div>
+    
+    <div id="syncToast"><i class="fas fa-check-circle me-2"></i>Data Synced Successfully!</div>
+
+    <img src="https://lh3.googleusercontent.com/d/1D8BOOqhKP9AAlYOzOQpOzWAXm_sf3tm6" class="top-right-logo" referrerpolicy="no-referrer" alt="Logo KPKNL">
+
+    <div class="container-fluid px-4">
+      
+      <div class="d-flex justify-content-between align-items-center pt-4">
+        <a href="<?!= getScriptUrl() ?>" class="nav-btn"><i class="fas fa-arrow-left me-2"></i>Back to List</a>
+        <div class="text-white small" id="lastUpdated" style="margin-right: 20px;">Updated: -</div>
+      </div>
+
+      <div class="cockpit-header">
+        <h2 class="cockpit-title">COCKPIT PENGELOLAAN BMN</h2>
+        <div class="cockpit-subtitle">KPKNL DENPASAR</div>
+      </div>
+
+      <div class="row g-4 mb-4">
+        
+        <div class="col-md-5 col-sm-12">
+          <div class="d-flex justify-content-start mb-2">
+            <button id="btnSync" class="btn-sync shadow-sm" onclick="triggerRefresh()">
+              <i id="syncIcon" class="fas fa-sync-alt me-2"></i><span id="syncText">Sync Data</span>
+            </button>
+          </div>
+          <div class="glass-card card-compact d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="kpi-label text-secondary m-0">TOTAL PERSETUJUAN<br>YANG TELAH TERBIT</h6>
+              <div class="d-flex gap-2" style="width: 50%;">
+                <select id="selMonthApp" class="glass-select py-1" onchange="calculateApproval()">
+                  <option value="12">s.d. Des</option><option value="1">s.d. Jan</option><option value="2">s.d. Feb</option><option value="3">s.d. Mar</option><option value="4">s.d. Apr</option><option value="5">s.d. Mei</option><option value="6">s.d. Jun</option><option value="7">s.d. Jul</option><option value="8">s.d. Agu</option><option value="9">s.d. Sep</option><option value="10">s.d. Okt</option><option value="11">s.d. Nov</option>
+                </select>
+                <select id="selYearApp" class="glass-select py-1" onchange="calculateApproval()"><option value="all">All</option></select>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-1">
+               <span class="text-muted small fw-bold">PSP BMN</span>
+               <span class="fs-4 fw-bolder text-primary" id="kpi-psp">0</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+               <span class="text-muted small fw-bold">PENGELOLAAN</span>
+               <span class="fs-4 fw-bolder text-info" id="kpi-pengelolaan">0</span>
+            </div>
+            <div id="pengelolaan-breakdown" class="mt-1 ps-2 border-start border-3 border-info flex-grow-1" style="overflow-y: auto; font-size: 0.75rem; max-height: 100px;">
+               <div class="text-muted fst-italic">Loading...</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4 col-sm-12">
+          <div class="mb-2" style="height: 38px;"></div> 
+          <div class="glass-card card-compact d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-center mb-1"><h6 class="kpi-label text-secondary m-0"><i class="fas fa-tasks me-2"></i>MONITORING TINJUT</h6></div>
+            <div class="row g-1 mb-2">
+              <div class="col-6"><select id="selCluster" class="glass-select py-1" onchange="calculateTinjut()"><option value="all">Cluster: All</option><option value="Penggunaan">Penggunaan</option><option value="Pemanfaatan">Pemanfaatan</option><option value="Pemindahtanganan">Pemindahtanganan</option><option value="Pemusnahan">Pemusnahan</option></select></div>
+              <div class="col-3"><select id="selSemester" class="glass-select py-1" onchange="calculateTinjut()"><option value="all">Sem: All</option><option value="1">I</option><option value="2">II</option></select></div>
+              <div class="col-3"><select id="selYearTinjut" class="glass-select py-1" onchange="calculateTinjut()"><option value="all">Thn</option></select></div>
+            </div>
+            <div class="flex-grow-1 d-flex align-items-center">
+              <table class="table-glass table-compact">
+                <thead><tr><th>Total<br>Setuju</th><th>Sudah<br>Tinjut</th><th>%<br>Capaian</th></tr></thead>
+                <tbody id="tinjutTableBody"><tr><td class="text-primary fs-3 fw-bold">0</td><td class="text-success fs-3 fw-bold">0</td><td class="text-dark fs-3 fw-bold">0%</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-3 col-sm-12">
+          <div class="mb-2" style="height: 38px;"></div> 
+          <div class="glass-card card-compact d-flex flex-column justify-content-center">
+            <h6 class="kpi-label text-secondary text-center mb-2"><i class="fas fa-chart-line me-2"></i>DATA EVAKIN</h6>
+            <div class="row text-center mb-2">
+              <div class="col-6 border-end"><div class="fs-3 fw-bolder text-primary lh-1" id="kpi-evakin-nup">0</div><small class="text-muted fw-bold" style="font-size: 0.7rem;">TOTAL NUP</small></div>
+              <div class="col-6"><div class="fs-3 fw-bolder text-success lh-1" id="kpi-evakin-tinjut">0</div><small class="text-muted fw-bold" style="font-size: 0.7rem;">TINJUT EVAKIN</small></div>
+            </div>
+            <div class="border-top pt-1 text-center mt-auto"><div class="fs-5 fw-bold text-dark lh-1" id="kpi-evakin-laporan">0</div><small class="text-secondary" style="font-size: 0.7rem;">Total Laporan Evakin</small></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4 mt-5 pt-3">
+        
+        <div class="col-lg-4 col-md-12">
+           <div class="glass-card d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                 <h6 class="kpi-label text-secondary m-0 lh-base">
+                    <i class="fas fa-landmark me-2"></i>PSP TANAH/<br>BANGUNAN
+                 </h6>
+                 <select id="selYearTanah" class="glass-select" style="width: 80px;" onchange="calculateTanahBangunan()">
+                    <option value="all">All</option>
+                 </select>
+              </div>
+              
+              <div class="row align-items-center mb-3">
+                 <div class="col-5 border-end text-center">
+                    <div class="fs-2 fw-bolder text-warning lh-1" id="disp-tanah-freq">0</div>
+                    <small class="text-muted fw-bold text-uppercase" style="font-size: 0.65rem;">Jml SK</small>
+                 </div>
+                 <div class="col-7 text-center">
+                    <div class="fs-3 fw-bolder text-success lh-1" id="disp-tanah-nup">0</div>
+                    <small class="text-muted fw-bold text-uppercase" style="font-size: 0.65rem;">Total NUP T/B</small>
+                 </div>
+              </div>
+
+              <div class="border-top pt-3 mt-auto">
+                 <h6 class="small fw-bold text-secondary text-uppercase mb-2">Capaian Target (NUP)</h6>
+                 <div id="target-container">
+                    <div class="text-muted small fst-italic">Loading Targets...</div>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        <div class="col-lg-8 col-md-12">
+          <div class="glass-card">
+            <h6 class="kpi-label text-secondary mb-3"><i class="fas fa-chart-line me-2"></i>Trend Persetujuan Terbit (Kumulatif Bulanan)</h6>
+            <div style="height: 300px; width: 100%;"><canvas id="approvalTrendChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4 mt-5 pt-3">
+        
+        <div class="col-md-4 col-sm-12">
+          <div class="text-white-50 small mb-1 ms-1">Updated: 4/12/2025</div>
+          
+          <div class="glass-card">
+            <h6 class="kpi-label text-secondary mb-4"><i class="fas fa-building me-2"></i>DATA SATUAN KERJA</h6>
+            <div class="text-center border-bottom pb-3 mb-3">
+                <div class="fs-2 fw-bolder text-primary lh-1" id="display-total-satker">282</div>
+                <small class="text-muted fw-bold text-uppercase">Total Satker</small>
+                <div class="mt-2"><span class="fs-5 fw-bold text-dark" id="display-total-kl">44</span> <small class="text-secondary">K/L</small></div>
+            </div>
+            <h6 class="small fw-bold text-secondary text-uppercase mb-2">Detail Kewenangan</h6>
+            <table class="table-glass">
+              <tbody>
+                <tr><td class="text-start ps-3">KD (Kantor Daerah)</td><td class="fw-bold text-primary data-kewenangan" id="val-kd">234</td></tr>
+                <tr><td class="text-start ps-3">KP (Kantor Pusat)</td><td class="fw-bold text-primary data-kewenangan" id="val-kp">28</td></tr>
+                <tr><td class="text-start ps-3">DK (Dekonsentrasi)</td><td class="fw-bold text-primary data-kewenangan" id="val-dk">11</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="col-md-4 col-sm-12">
+          <div class="mb-1" style="height: 19px;"></div> 
+          
+          <div class="glass-card">
+            <h6 class="kpi-label text-secondary mb-3"><i class="fas fa-map-marker-alt me-2"></i>SEBARAN SATKER DI BALI</h6>
+            <table class="table-glass">
+              <thead><tr><th class="text-start ps-3">Wilayah</th><th>Jumlah</th></tr></thead>
+              <tbody>
+                <tr><td class="text-start ps-3">Kota Denpasar</td><td class="fw-bold text-primary data-wilayah" id="val-denpasar">176</td></tr>
+                <tr><td class="text-start ps-3">Kab. Badung</td><td class="fw-bold text-primary data-wilayah" id="val-badung">43</td></tr>
+                <tr><td class="text-start ps-3">Kab. Tabanan</td><td class="fw-bold text-primary data-wilayah" id="val-tabanan">21</td></tr>
+                <tr><td class="text-start ps-3">Kab. Gianyar</td><td class="fw-bold text-primary data-wilayah" id="val-gianyar">23</td></tr>
+                <tr><td class="text-start ps-3">Kab. Klungkung</td><td class="fw-bold text-primary data-wilayah" id="val-klungkung">19</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="col-md-4 col-sm-12">
+          <div class="mb-1" style="height: 19px;"></div> 
+
+          <div class="glass-card">
+            <h6 class="kpi-label text-secondary mb-3"><i class="fas fa-trophy me-2"></i>5 K/L dengan Satker Terbanyak</h6>
+            <div style="display:none">
+                <span id="kl-label-1">Kementerian Agama</span><span id="kl-val-1">44</span>
+                <span id="kl-label-2">Kepolisian RI</span><span id="kl-val-2">31</span>
+                <span id="kl-label-3">Mahkamah Agung</span><span id="kl-val-3">25</span>
+                <span id="kl-label-4">Kementerian PU</span><span id="kl-val-4">20</span>
+                <span id="kl-label-5">Kementerian Keuangan</span><span id="kl-val-5">17</span>
+            </div>
+            <div style="height: 280px; width: 100%;"><canvas id="topKLChart"></canvas></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="row g-4 mb-4 mt-5 pt-3">
+        <div class="col-lg-7 col-md-12">
+          <div class="glass-card">
+            <h6 class="kpi-label text-secondary mb-3"><i class="fas fa-chart-pie me-2"></i>Nilai BMN per Jenis Aset</h6>
+            <div class="row">
+              <div class="col-md-7">
+                 <div style="height: 350px; width: 100%;"><canvas id="nilaiBMNChart"></canvas></div>
+              </div>
+              <div class="col-md-5">
+                 <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                    <table class="table-glass text-center" style="font-size: 0.7rem;">
+                      <thead>
+                        <tr><th class="text-start">Jenis Aset</th><th>NUP</th><th>Nilai (T)</th></tr>
+                      </thead>
+                      <tbody id="nilaiBMNTableBody">
+                         <tr class="bmn-row"><td class="text-start bmn-label">Tanah</td><td class="bmn-nup">4017</td><td class="bmn-val" data-raw="104059225203205">0</td></tr>
+                         <tr class="bmn-row"><td class="text-start bmn-label">Gedung & Bangunan</td><td class="bmn-nup">13375</td><td class="bmn-val" data-raw="11806605643797">0</td></tr>
+                         <tr class="bmn-row"><td class="text-start bmn-label">Peralatan & Mesin</td><td class="bmn-nup">919507</td><td class="bmn-val" data-raw="14905001811318">0</td></tr>
+                         <tr class="bmn-row"><td class="text-start bmn-label">Jalan & Jaringan</td><td class="bmn-nup">24083</td><td class="bmn-val" data-raw="23328146425067">0</td></tr>
+                         <tr class="bmn-row"><td class="text-start bmn-label">Aset Tetap Lainnya</td><td class="bmn-nup">520955</td><td class="bmn-val" data-raw="214404393125">0</td></tr>
+                         <tr class="bmn-row"><td class="text-start bmn-label">KDP</td><td class="bmn-nup">2834</td><td class="bmn-val" data-raw="11043529174139">0</td></tr>
+                         <tr class="bmn-row"><td class="text-start bmn-label">Aset Konsesi Jasa</td><td class="bmn-nup">6088</td><td class="bmn-val" data-raw="477175971632">0</td></tr>
+                         <tr class="bmn-row"><td class="text-start bmn-label">Properti Investasi</td><td class="bmn-nup">4</td><td class="bmn-val" data-raw="3495971000">0</td></tr>
+                      </tbody>
+                    </table>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-5 col-md-12">
+           <div class="row g-4 h-100">
+              <div class="col-12 h-50">
+                <div class="glass-card d-flex flex-column py-3">
+                   <h6 class="kpi-label text-secondary mb-2"><i class="fas fa-medal me-2"></i>Satker Nilai BMN Terbesar</h6>
+                   <div class="satker-title">Satuan Kerja Pelaksanaan Jalan Nasional Wilayah II Provinsi Bali</div>
+                   <div class="mt-auto"><div class="fs-4 fw-bolder text-primary lh-1" id="top-satker-value">Rp 29.866.700.847.871</div></div>
+                </div>
+              </div>
+              <div class="col-12 h-50">
+                <div class="glass-card d-flex flex-column py-3">
+                   <h6 class="kpi-label text-secondary mb-2"><i class="fas fa-cubes me-2"></i>Satker Jumlah BMN Terbanyak</h6>
+                   <div class="satker-title">Universitas Udayana</div>
+                   <div class="mt-auto"><div class="fs-3 fw-bolder text-success lh-1">157.271 <small class="text-muted" style="font-size: 0.8rem;">NUP</small></div></div>
+                </div>
+              </div>
+           </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4 mt-5 pt-3">
+        
+        <div class="col-md-6 col-sm-12">
+          <div class="glass-card">
+            <h6 class="kpi-label text-secondary mb-3"><i class="fas fa-chart-line me-2"></i>10 teratas K/L dengan nilai BMN terbesar (dlm Triliun Rupiah)</h6>
+            
+            <div style="display:none">
+                <span id="kl-nilai-label-1">Kementerian Pekerjaan Umum</span><span id="kl-nilai-val-1">58.06</span>
+                <span id="kl-nilai-label-2">Kementerian Pertahanan</span><span id="kl-nilai-val-2">37.23</span>
+                <span id="kl-nilai-label-3">Kementerian Dikti Sains & Teknologi</span><span id="kl-nilai-val-3">13.16</span>
+                <span id="kl-nilai-label-4">Kepolisian RI</span><span id="kl-nilai-val-4">8.65</span>
+                <span id="kl-nilai-label-5">Kementerian Kesehatan</span><span id="kl-nilai-val-5">4.55</span>
+                <span id="kl-nilai-label-6">Kementerian Perhubungan</span><span id="kl-nilai-val-6">3.86</span>
+                <span id="kl-nilai-label-7">Kementerian Keuangan</span><span id="kl-nilai-val-7">2.9</span>
+                <span id="kl-nilai-label-8">Kementerian Pariwisata</span><span id="kl-nilai-val-8">2.24</span>
+                <span id="kl-nilai-label-9">Kementerian Imigrasi & PAS</span><span id="kl-nilai-val-9">1.37</span>
+                <span id="kl-nilai-label-10">Kejaksaan RI</span><span id="kl-nilai-val-10">1.01</span>
+            </div>
+
+            <div style="height: 400px; width: 100%;"><canvas id="top10NilaiChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-sm-12">
+          <div class="glass-card">
+            <h6 class="kpi-label text-secondary mb-3"><i class="fas fa-list-ol me-2"></i>10 teratas K/L dengan BMN terbanyak (NUP)</h6>
+            
+            <div style="display:none">
+                <span id="kl-nup-label-1">Kementerian Dikti Sains & Teknologi</span><span id="kl-nup-val-1">282.661</span>
+                <span id="kl-nup-label-2">Kementerian Pertahanan</span><span id="kl-nup-val-2">201.637</span>
+                <span id="kl-nup-label-3">Kepolisian RI</span><span id="kl-nup-val-3">126.314</span>
+                <span id="kl-nup-label-4">Kementerian Kesehatan</span><span id="kl-nup-val-4">88.553</span>
+                <span id="kl-nup-label-5">Kementerian Agama</span><span id="kl-nup-val-5">74.562</span>
+                <span id="kl-nup-label-6">Kementerian Pekerjaan Umum</span><span id="kl-nup-val-6">41.677</span>
+                <span id="kl-nup-label-7">Kementerian Perhubungan</span><span id="kl-nup-val-7">33.020</span>
+                <span id="kl-nup-label-8">Mahkamah Agung</span><span id="kl-nup-val-8">32.159</span>
+                <span id="kl-nup-label-9">Kementerian Pariwisata</span><span id="kl-nup-val-9">31.209</span>
+                <span id="kl-nup-label-10">Kementerian Keuangan</span><span id="kl-nup-val-10">27.606</span>
+            </div>
+
+            <div style="height: 400px; width: 100%;"><canvas id="top10NupChart"></canvas></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="text-center text-white-50 mt-5 small">© 2025 KPKNL Denpasar - Integrated BMN System</div>
+
+    </div>
+
+    <script>
+      var GLOBAL_APPROV_DATA = []; var GLOBAL_TINJUT_DATA = []; 
+      var GLOBAL_TANAH_DATA = []; 
+      var GLOBAL_TARGETS = { q1: 0, q2: 0, q3: 0, q4: 0 }; // NEW Target Variable
+
+      var approvalChartInstance = null; var klChartInstance = null; var bmnChartInstance = null; var top10NilaiChart = null; var top10NupChart = null; var isSyncing = false;
+      const CLUSTERS = { "Penggunaan": ["alih status", "penggunaan", "penetapan status"], "Pemanfaatan": ["sewa", "ksp", "pinjam pakai", "bgs", "bsg"], "Pemindahtanganan": ["penjualan", "hibah", "tukar menukar", "pmp"], "Pemusnahan": ["pemusnahan"] };
+
+      document.addEventListener('DOMContentLoaded', function() { 
+        fetchRealData(); 
+        updateTopKLChart(); 
+        autoCalculateTotals();
+        updateNilaiBMNChart();
+        updateTop10Charts(); 
+      });
+
+      // --- NEW: TOP 10 DYNAMIC CHARTS ---
+      function updateTop10Charts() {
+        const yellowFill = 'rgba(255, 193, 7, 0.7)';
+        const yellowBorder = '#ffc107';
+
+        // --- Nilai Chart ---
+        const labelsNilai = []; const dataNilai = [];
+        for(let i=1; i<=10; i++){
+          labelsNilai.push(document.getElementById(`kl-nilai-label-${i}`).innerText);
+          dataNilai.push(parseFloat(document.getElementById(`kl-nilai-val-${i}`).innerText));
+        }
+        const ctxNilai = document.getElementById('top10NilaiChart').getContext('2d');
+        if(top10NilaiChart) top10NilaiChart.destroy();
+        top10NilaiChart = new Chart(ctxNilai, {
+          type: 'bar',
+          data: { labels: labelsNilai, datasets: [{ label: 'Nilai (Triliun)', data: dataNilai, backgroundColor: yellowFill, borderColor: yellowBorder, borderWidth: 1, borderRadius: 5 }] },
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true }, y: { ticks: { font: { size: 9 } } } } }
+        });
+
+        // --- NUP Chart ---
+        const labelsNup = []; const dataNup = [];
+        for(let i=1; i<=10; i++){
+          labelsNup.push(document.getElementById(`kl-nup-label-${i}`).innerText);
+          const raw = document.getElementById(`kl-nup-val-${i}`).innerText.replace(/\./g, '');
+          dataNup.push(parseFloat(raw));
+        }
+        const ctxNup = document.getElementById('top10NupChart').getContext('2d');
+        if(top10NupChart) top10NupChart.destroy();
+        top10NupChart = new Chart(ctxNup, {
+          type: 'bar',
+          data: { labels: labelsNup, datasets: [{ label: 'Jumlah NUP', data: dataNup, backgroundColor: yellowFill, borderColor: yellowBorder, borderWidth: 1, borderRadius: 5 }] },
+          options: { 
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
+            plugins: { 
+              legend: { display: false },
+              tooltip: { callbacks: { label: (ctx) => `NUP: ${ctx.parsed.x.toLocaleString('id-ID')}` } }
+            }, 
+            scales: { x: { beginAtZero: true }, y: { ticks: { font: { size: 9 } } } } 
+          }
+        });
+      }
+
+      function updateNilaiBMNChart() {
+        const labels = []; const valuesT = []; const TRILLION = 1000000000000;
+        document.querySelectorAll('.bmn-row').forEach(row => {
+          const label = row.querySelector('.bmn-label').innerText;
+          const nupEl = row.querySelector('.bmn-nup');
+          const nupRaw = parseInt(nupEl.innerText.replace(/\D/g, '')) || 0; 
+          nupEl.innerText = nupRaw.toLocaleString('id-ID');
+          const rawVal = parseFloat(row.querySelector('.bmn-val').getAttribute('data-raw')) || 0;
+          const valT = rawVal / TRILLION;
+          labels.push(label); valuesT.push(valT);
+          row.querySelector('.bmn-val').innerText = valT.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        });
+        const ctx = document.getElementById('nilaiBMNChart').getContext('2d');
+        if (bmnChartInstance) bmnChartInstance.destroy();
+        bmnChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: { labels: labels, datasets: [{ label: 'Nilai (Triliun Rp)', data: valuesT, backgroundColor: 'rgba(255, 193, 7, 0.7)', borderColor: '#ffc107', borderWidth: 1, borderRadius: 4 }] },
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true }, y: { ticks: { font: { size: 9 } } } } }
+        });
+      }
+
+      function updateTopKLChart() {
+        const labels = [document.getElementById('kl-label-1').innerText, document.getElementById('kl-label-2').innerText, document.getElementById('kl-label-3').innerText, document.getElementById('kl-label-4').innerText, document.getElementById('kl-label-5').innerText];
+        const values = [parseInt(document.getElementById('kl-val-1').innerText), parseInt(document.getElementById('kl-val-2').innerText), parseInt(document.getElementById('kl-val-3').innerText), parseInt(document.getElementById('kl-val-4').innerText), parseInt(document.getElementById('kl-val-5').innerText)];
+        const ctx = document.getElementById('topKLChart').getContext('2d');
+        if (klChartInstance) klChartInstance.destroy();
+        klChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Jumlah Satker', data: values, backgroundColor: 'rgba(255, 193, 7, 0.7)', borderColor: '#ffc107', borderWidth: 1, borderRadius: 5 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { display: false } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
+        });
+      }
+
+      function autoCalculateTotals() {
+          let totalKewenangan = 0;
+          document.querySelectorAll('.data-kewenangan').forEach(el => totalKewenangan += parseInt(el.innerText) || 0);
+          document.getElementById('display-total-satker').innerText = totalKewenangan;
+      }
+
+      function triggerRefresh() {
+        if(isSyncing) return; isSyncing = true;
+        var btn = document.getElementById("btnSync"), icon = document.getElementById("syncIcon"), txt = document.getElementById("syncText");
+        icon.classList.add("fa-spin"); txt.innerText = "Syncing..."; btn.disabled = true;
+        fetchRealData(function() {
+          isSyncing = false; icon.classList.remove("fa-spin"); txt.innerText = "Sync Data"; btn.disabled = false;
+          var toast = document.getElementById("syncToast"); toast.className = "show";
+          setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        });
+      }
+
+      function fetchRealData(callback) {
+        google.script.run.withSuccessHandler(function(data) { renderDashboard(data); if (callback) callback(); })
+          .withFailureHandler(function(err) { document.getElementById('loader').innerHTML = `<div class="text-danger">Error: ${err.message}</div>`; if (callback) callback(); })
+          .getDashboardData();
+      }
+
+      function renderDashboard(data) {
+        if (data.error) { alert(data.error); return; }
+        GLOBAL_APPROV_DATA = data.kpi.rawApproval || []; GLOBAL_TINJUT_DATA = data.kpi.rawTinjut || [];
+        GLOBAL_TANAH_DATA = data.kpi.rawTanah || [];
+        // LOAD TARGETS
+        GLOBAL_TARGETS = data.kpi.targets || {q1:0, q2:0, q3:0, q4:0};
+
+        populateYearDropdown(GLOBAL_APPROV_DATA, "selYearApp"); populateYearDropdown(GLOBAL_TINJUT_DATA, "selYearTinjut");
+        populateYearDropdown(GLOBAL_TANAH_DATA, "selYearTanah");
+
+        calculateApproval(); calculateTinjut(); calculateTanahBangunan();
+
+        var ev = data.kpi.evakin; animateValue("kpi-evakin-nup", 0, ev.totalNUP, 1000); animateValue("kpi-evakin-tinjut", 0, ev.totalTinjut, 1000); animateValue("kpi-evakin-laporan", 0, ev.totalLaporan, 1000);
+        document.getElementById('lastUpdated').innerText = 'Updated: ' + new Date().toLocaleString('id-ID');
+        document.getElementById('loader').style.display = 'none';
+      }
+
+      // --- UPDATED FUNCTION: CALCULATE TANAH & BANGUNAN + TARGETS ---
+      function calculateTanahBangunan() {
+          var selYear = document.getElementById("selYearTanah").value;
+          var countFreq = 0;
+          var sumNup = 0;
+
+          GLOBAL_TANAH_DATA.forEach(item => {
+              if(!item.date) return;
+              var d = new Date(item.date);
+              
+              if (selYear === "all" || d.getFullYear().toString() === selYear) {
+                  countFreq++;
+                  sumNup += item.nup;
+              }
+          });
+
+          animateValue("disp-tanah-freq", 0, countFreq, 800);
+          animateValue("disp-tanah-nup", 0, sumNup, 800);
+
+          // RENDER TARGETS
+          var t = GLOBAL_TARGETS;
+          var pct1 = t.q1 > 0 ? ((sumNup/t.q1)*100).toFixed(1) : 0;
+          var pct2 = t.q2 > 0 ? ((sumNup/t.q2)*100).toFixed(1) : 0;
+          var pct3 = t.q3 > 0 ? ((sumNup/t.q3)*100).toFixed(1) : 0;
+          var pct4 = t.q4 > 0 ? ((sumNup/t.q4)*100).toFixed(1) : 0;
+
+          // Helper to generate color based on %
+          function getColor(pct) {
+              if(pct >= 100) return "text-success-dark";
+              if(pct >= 80) return "text-success";
+              if(pct >= 50) return "text-warning-dark";
+              return "text-danger";
+          }
+
+          var html = `
+             <div class="target-row">
+                <span class="target-label">Triwulan I</span>
+                <span class="target-val">${t.q1.toLocaleString()}</span>
+                <span class="target-pct ${getColor(pct1)}">${pct1}%</span>
+             </div>
+             <div class="target-row">
+                <span class="target-label">Triwulan II</span>
+                <span class="target-val">${t.q2.toLocaleString()}</span>
+                <span class="target-pct ${getColor(pct2)}">${pct2}%</span>
+             </div>
+             <div class="target-row">
+                <span class="target-label">Triwulan III</span>
+                <span class="target-val">${t.q3.toLocaleString()}</span>
+                <span class="target-pct ${getColor(pct3)}">${pct3}%</span>
+             </div>
+             <div class="target-row" style="border-bottom:none;">
+                <span class="target-label">Triwulan IV</span>
+                <span class="target-val">${t.q4.toLocaleString()}</span>
+                <span class="target-pct ${getColor(pct4)}">${pct4}%</span>
+             </div>
+          `;
+          
+          document.getElementById("target-container").innerHTML = html;
+      }
+
+      function calculateTinjut() {
+        var selCluster = document.getElementById("selCluster").value, selSem = document.getElementById("selSemester").value, selYear = document.getElementById("selYearTinjut").value;
+        var totalSetuju = 0, totalTindakLanjut = 0;
+        GLOBAL_TINJUT_DATA.forEach(item => {
+          var include = true;
+          if (!item.date) { include = false; } else {
+             var d = new Date(item.date); if (selYear !== "all" && d.getFullYear().toString() !== selYear) include = false;
+             if (selSem !== "all") { var m = d.getMonth(); if (selSem === "1" && m > 5) include = false; if (selSem === "2" && m <= 5) include = false; }
+          }
+          if (include && selCluster !== "all") {
+            var itemType = (item.type || "").toLowerCase(), allowedTypes = CLUSTERS[selCluster] || [];
+            if (!allowedTypes.some(keyword => itemType.includes(keyword))) include = false;
+          }
+          if (include) { totalSetuju++; if (item.ticked) totalTindakLanjut++; }
+        });
+        var percent = totalSetuju > 0 ? ((totalTindakLanjut / totalSetuju) * 100).toFixed(1) : 0;
+        document.getElementById("tinjutTableBody").innerHTML = `<tr><td class="text-primary fs-3 fw-bold">${totalSetuju}</td><td class="text-success fs-3 fw-bold">${totalTindakLanjut}</td><td class="text-dark fs-3 fw-bold">${percent}%</td></tr>`;
+      }
+
+      function calculateApproval() {
+        var selYear = document.getElementById("selYearApp").value, selMonth = parseInt(document.getElementById("selMonthApp").value);
+        var pspCount = 0, pengelolaanCount = 0, breakdown = {}, monthlyPSP = new Array(12).fill(0), monthlyPengelolaan = new Array(12).fill(0);
+        GLOBAL_APPROV_DATA.forEach(item => {
+          if (!item.date) return;
+          var d = new Date(item.date), yearMatch = (selYear === "all" || d.getFullYear().toString() === selYear);
+          if (yearMatch) {
+            if ((d.getMonth() + 1) <= selMonth) { if (item.isPSP) pspCount++; else { pengelolaanCount++; breakdown[item.subType] = (breakdown[item.subType] || 0) + 1; } }
+            if (item.isPSP) monthlyPSP[d.getMonth()]++; else monthlyPengelolaan[d.getMonth()]++;
+          }
+        });
+        document.getElementById("kpi-psp").innerText = pspCount; document.getElementById("kpi-pengelolaan").innerText = pengelolaanCount;
+        var listHtml = ""; for (var key in breakdown) { listHtml += `<div class="d-flex justify-content-between mb-1"><span class="text-secondary">${key}</span><span class="fw-bold text-dark">${breakdown[key]}</span></div>`; }
+        document.getElementById("pengelolaan-breakdown").innerHTML = listHtml || `<div class="text-muted small">- Empty -</div>`;
+        updateApprovalChart(monthlyPSP, monthlyPengelolaan);
+      }
+
+      function updateApprovalChart(dataPSP, dataPengelolaan) {
+        var ctx = document.getElementById('approvalTrendChart').getContext('2d'); if (approvalChartInstance) { approvalChartInstance.destroy(); }
+        approvalChartInstance = new Chart(ctx, { type: 'line', data: { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], datasets: [ { label: 'PSP', data: dataPSP, borderColor: '#0d6efd', backgroundColor: 'rgba(13, 110, 253, 0.1)', tension: 0.3, fill: true }, { label: 'Pengelolaan', data: dataPengelolaan, borderColor: '#0dcaf0', backgroundColor: 'rgba(13, 202, 240, 0.1)', tension: 0.3, fill: true } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } } });
+      }
+
+      function populateYearDropdown(data, elementId) {
+        var years = new Set(); data.forEach(item => { if (item.date) { var d = new Date(item.date); if (!isNaN(d.getTime())) years.add(d.getFullYear()); } });
+        var select = document.getElementById(elementId); 
+        // Clear previous options except first
+        while (select.options.length > 1) { select.remove(1); }
+        
+        Array.from(years).sort().reverse().forEach(y => { var opt = document.createElement("option"); opt.value = y; opt.innerText = y; select.appendChild(opt); });
+      }
+      
+      function animateValue(id, start, end, duration) { 
+          var obj = document.getElementById(id);
+          var range = end - start;
+          var current = start;
+          var increment = end > start ? 1 : -1;
+          var stepTime = Math.abs(Math.floor(duration / range));
+          if (stepTime < 5) stepTime = 5;
+          if (range === 0) { obj.innerHTML = end; return; }
+          var timer = setInterval(function() {
+              current += increment;
+              if(range > 100) current += Math.floor(range/20);
+              if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                  current = end;
+                  clearInterval(timer);
+              }
+              obj.innerHTML = current.toLocaleString('id-ID');
+          }, stepTime);
+      }
+    </script>
+  </body>
+</html>
