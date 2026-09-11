@@ -6,6 +6,7 @@ Streamlit + DuckDB + Parquet — refactored for security, robustness, and perfor
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,7 @@ CONFIG: dict[str, Any] = {
     "default_location": [-8.45, 115.075],
     "map_zoom": 9,
     "tiles": "CartoDB positron",
+    "carto_tiles_url": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
     "map_width": 500,
     "map_height": 400,
     "nup_map_width": 500,
@@ -38,6 +40,11 @@ CONFIG: dict[str, Any] = {
     "max_rows_read": 99_999_999,
     "max_cols_read": 100,
 }
+
+try:
+    CARTO_API_KEY: str = st.secrets["CARTO_API_KEY"]
+except Exception:
+    CARTO_API_KEY = os.environ.get("CARTO_API_KEY", "")
 
 GOLONGAN_SORT: list[str] = [
     "TANAH",
@@ -165,6 +172,21 @@ def _safe_query(con: duckdb.DuckDBPyConnection, sql: str, params: list[Any] | No
         return pd.DataFrame()
 
 
+def _carto_tiles() -> folium.TileLayer | str:
+    """Return CARTO Positron tiles, authenticated via API key when configured."""
+    if not CARTO_API_KEY:
+        return CONFIG["tiles"]
+    return folium.TileLayer(
+        tiles=f"{CONFIG['carto_tiles_url']}?key={CARTO_API_KEY}",
+        attr=(
+            "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> "
+            "contributors &copy; <a href='https://carto.com/attributions'>CARTO</a>"
+        ),
+        name="CartoDB positron",
+        subdomains="abcd",
+    )
+
+
 def _render_map(
     df_agg: pd.DataFrame,
     kab_col: str,
@@ -177,7 +199,7 @@ def _render_map(
     m = folium.Map(
         location=CONFIG["default_location"],
         zoom_start=CONFIG["map_zoom"],
-        tiles=CONFIG["tiles"],
+        tiles=_carto_tiles(),
         zoom_control=False,
         scrollWheelZoom=False,
         dragging=False,
@@ -583,7 +605,7 @@ def main() -> None:
                     df_map_satker = df_s.groupby("Kab/Kota").size().reset_index(name="jumlah")
                     m2 = folium.Map(
                         location=CONFIG["default_location"], zoom_start=CONFIG["map_zoom"],
-                        tiles=CONFIG["tiles"], zoom_control=False, scrollWheelZoom=False,
+                        tiles=_carto_tiles(), zoom_control=False, scrollWheelZoom=False,
                         dragging=False, doubleClickZoom=False,
                     )
                     for _, row in df_map_satker.iterrows():
